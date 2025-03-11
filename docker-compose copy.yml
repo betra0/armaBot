@@ -1,17 +1,5 @@
 services:
  
-  
-
-  backweb:
-    restart: always
-    build:
-      context: ./backend/web
-    networks:
-      - back-network
-    depends_on:
-      - api1
-    ports:
-      - "80:80"
 
   db:
     image: mysql:8.0.39
