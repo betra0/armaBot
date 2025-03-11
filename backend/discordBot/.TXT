@@ -1,0 +1,14 @@
+{
+    "unaIDDeCOC":{
+
+
+        IDChanel:{
+            IDServer:valor
+            IDChanel:valor
+            IDMESSAGE:valor 
+        }
+        
+    },
+    "OtraIDCOC":{...}
+
+}
