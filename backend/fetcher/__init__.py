@@ -83,8 +83,8 @@ def insertIpInRedis():
     #r .sadd("ipsTofech", "192.168.0.27:2363")
     # otra insecion para test 
     # para hset
-    dictsubEample={"chanelIdExaple":'1234567890'}
-    r.hset("adress:sub:status", "104.234.7.8:2363", json.dumps(dictsubEample))
+    """ dictsubEample={"chanelIdExaple":'1234567890'}
+    r.hset("adress:sub:status", "104.234.7.8:2363", json.dumps(dictsubEample)) """
 def isSubadressInRedis(address):
     res = r.hget("adress:sub:status", address)  # Obtiene el valor de Redis
 

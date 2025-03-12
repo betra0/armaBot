@@ -1,5 +1,6 @@
 const findAndEditMessageText = async (client ,idChannel, idMessage, data='') => {
     /* IdChannel, IdMessage Data */
+    console.log('Buscando mensaje...');
     try{
         const channel = await client.channels.fetch(idChannel);
         if (channel && channel.isTextBased()) {

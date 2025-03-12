@@ -11,6 +11,10 @@ const redis = new Redis({
     host:'localhost',
     port:6379
 });
+const subscriber = new Redis({
+    host: 'localhost',
+    port: 6379
+});
 
 const client = new Client({
     intents:process.env.INTENTSDS
@@ -26,93 +30,50 @@ const handlerReqireCommand = (carpeta, arg, message)=>{
 
 }
 
-const saveRedisNewMessageSubcription = async ({ type='rankingDonations', gildID, clanTag, channelID, messageID})=>{
-// hay Type rankingDonations y lastLogsDonations
+const saveRedisNewMessageSubcription = async ({ type='status', gildID, adress, channelID, messageID})=>{
+// hay Type status y voicetitle
 // primero verificas si ya hay un objeto 
-    let clanSubcriptionObject = await redis.hget(`Clanes:subcripcion:${type}`, clanTag)
-    clanSubcriptionObject= clanSubcriptionObject ? JSON.parse(clanSubcriptionObject) : {}
+    let ipSubcriptionObject = await redis.hget(`adress:sub:${type}`, adress)
+    ipSubcriptionObject= ipSubcriptionObject ? JSON.parse(ipSubcriptionObject) : {}
 
-    if (!clanSubcriptionObject[channelID]){
-        clanSubcriptionObject[channelID] = {}
+    if (!ipSubcriptionObject[channelID]){
+        ipSubcriptionObject[channelID] = {}
     }
-    clanSubcriptionObject[channelID] = {
+    ipSubcriptionObject[channelID] = {
         gildID: gildID,
         messageID: messageID,
         channelID: channelID
     }
-
     // Guardar el objeto en redis
-    await redis.hset(`Clanes:subcripcion:${type}`, clanTag, JSON.stringify(clanSubcriptionObject))
+    await redis.hset(`adress:sub:${type}`, adress, JSON.stringify(ipSubcriptionObject))
 
 }
-const getListRedisClanSubcription = async ({type='rankingDonations', clanTag=null, valueClan=null })=>{
-    if (!clanTag && !valueClan){
+const getListRedisIpSubcription = async ({type='status', adress=null, value=null })=>{
+    // vaslue  e el valor obtenido sin formatear o sin parsear
+    //
+    if (!adress && !value){
         throw new Error('No se han proporcionado los datos necesarios.');
-    } else if(!valueClan){
-        valueClan = await redis.hget(`Clanes:subcripcion:${type}`, clanTag)
+    } else if(!value){
+        value = await redis.hget(`adress:sub:${type}`, adress)
     }
-    const clanData= valueClan ? JSON.parse(valueClan) : {}
+    const clanData= value ? JSON.parse(value) : {}
     // retornar una lista de objetos
     return Object.values(clanData)
     
 }
-
-const donationsRankingTask = async () => {
-    const typesList = ['rankingDonations', 'lastLogsDonations']
-    for (const type of typesList){
-        clansData = await redis.hgetall(`Clanes:subcripcion:${type}`)
-
-        for (const clanTag in clansData){
-
-            const URL = `http://${process.env.APIHOST}:${process.env.APIPORT}/members`
-            console.log(URL)
-            let response;
-            try {
-                response = await axios.get(URL);
-                if (response.status !== 200 || !response.data) {
-                    throw new Error('Respuesta inválida de la API');
-                }
-            } catch (err) {
-                console.error('Error al obtener los miembros del clan de la api:','ClanTag: ',clanTag , 'error:', err);
-            }
-            try {
-                const members = response.data.members;
-                // doantionLogs is a list or array
-                const donationLogs = response.data.donationLogs;
-
-                const newMessage ={
-                    content: '',
-                    embeds: []
-                }
-                if(type === 'rankingDonations'){
-                    // generar el mensaje del ranking de donaciones
-                    newMessage.content = generateStrRankingDonacionesTotales(members);
-                }else if(type === 'lastLogsDonations'){
-                    //generar Mensajes de los registros de donaciones
-                   newMessage.embeds = generateEmbedsLogs({membersDict: members, logsDonationList: donationLogs})
-                }
-                // Obtener la lista de subcripciones del clan
-                const clanSubcriptionList = await getListRedisClanSubcription({ clanTag, valueClan: clansData[clanTag] })
-                    for (const clanSubcription of clanSubcriptionList){
-                        const {channelID, messageID} = clanSubcription
-                        await findAndEditMessageText(client, channelID, messageID, newMessage);
-                    }
-
-
-            }catch (err) {
-                console.error('Error En el Transacion de enviaro editar mensajes', err);
-            }
-
-        }
+const getDictRedisIpSubcription = async ({type='status', adress=null })=>{
+    if (!adress){
+        throw new Error('No se han proporcionado los datos necesarios.');
     }
+    const subAdress = await redis.hget(`adress:sub:${type}`, adress)
+    return subAdress ? JSON.parse(subAdress) : {}
+}
 
 
 
-};
 
 
-
-const generateEmbedsLogs = ({membersDict={}, logsDonationList={}})=>{
+/* const generateEmbedsLogs = ({membersDict={}, logsDonationList={}})=>{
     const MAX_LOGS = 9;
     if (!membersDict || !logsDonationList) throw new Error('No se han proporcionado los datos necesarios.');
     const donationLogs = [...logsDonationList];
@@ -138,26 +99,8 @@ const generateEmbedsLogs = ({membersDict={}, logsDonationList={}})=>{
 
     }
     return embeds
-}
-const generateStrRankingDonacionesTotales = (members) => {
-    // Ordenar los miembros por 'accumulatedDonations' en orden descendente
-    const sortedMembers = Object.values(members).sort((a, b) => b.accumulatedDonations - a.accumulatedDonations);
-    // Construir el mensaje con hora y dia 
-    let newMessage = `   ≫ ───────≪•◦Última actualización: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()} UTC ◦•≫ ─────── ≪\n`;
-    newMessage += '**                               ≫ Ranking de donaciones del clan ≪:**\n';
-    let i = 1;
-    for (const member of sortedMembers) {
-        if (member.accumulatedDonations === 0) break;
-        newMessage += `•◦ ${i} •◦ ★ ${member.username}  Donaciones: ${member.accumulatedDonations}\n`;
-        i++;
-    }
-    newMessage += '   ≫ ─────── ≪•◦ ❈ ◦•≫ ─────── ≪'
-    
-    if (newMessage.length > 2000) {
-        newMessage = newMessage.slice(-1999); // Mantener los últimos 2000 caracteres
-      }
-    return newMessage;
-}
+} */
+
 
 
 
@@ -173,7 +116,7 @@ const exampleTask = async () => {
     // Enviar el mensaje con el botón
 
    
- const targetChannelId = '1327408280217059444'; 
+    const targetChannelId = '1327408280217059444'; 
     const channel = client.channels.cache.get(targetChannelId);
 
         if (channel) {
@@ -198,20 +141,51 @@ const exampleTask = async () => {
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
+
     //guardar en redis el mensaje de subcripcion para testear 
-    saveRedisNewMessageSubcription({type:'rankingDonations', gildID:'1327408280217059444', clanTag:'Q8J9J8', channelID:'1326100799800999939', messageID:'1326102556979499074'})
-    saveRedisNewMessageSubcription({type:'rankingDonations', gildID:'1327408280217059444', clanTag:'Q8J9J8', channelID:'1334621620047974534', messageID:'1334621692906967123'})
-    saveRedisNewMessageSubcription({type:'lastLogsDonations', gildID:'1327408280217059444', clanTag:'Q8J9J8', channelID:'1334634919187447902', messageID:'1334634949822779434'})
+    saveRedisNewMessageSubcription({type:'status', gildID:'1349159517270708356', adress:'104.234.7.8:2363', channelID:'1349159517971021928', messageID:'1349161450349789186'})
+    // suscribire a un canal en redis 
+    subscriber.subscribe('adressChangeInfo', (err, count) => {
+        if (err) {
+          console.error('Error al suscribirse a subscriber:', err);
+        } else {
+          console.log(`Suscrito a ${count} canal(es) en subscriber.`);
+        }
+    });
+    
+    subscriber.on('message', async (channel, message) => {
+        console.log(`Mensaje recibido en el canal ${channel}: ${message}`);
+        if (channel === 'adressChangeInfo') {
+            console.log('Mensaje de cambio de ip recibido:', message);
+            const ip = message;
+            const listValuesSub = await getListRedisIpSubcription({type:'status', adress:ip})
+            console.log(listValuesSub)
+            for (const valuesSub of listValuesSub){
+                if (valuesSub.channelID && valuesSub.messageID){
+                    await findAndEditMessageText(
+                        client, 
+                        valuesSub.channelID, 
+                        valuesSub.messageID, 
+                        {content: `La ip ${ip} ha cambiado de estado`}
+                    )
+                }
+            }
+        }
+    
+    });
+
+
+
 
 
     // Espera 10 segundos antes de ejecutar por primera vez
-    setTimeout(() => {
+    /* setTimeout(() => {
         donationsRankingTask(); 
 
         // Programa la ejecución repetitiva cada 2 minutos (120,000 ms)
         setInterval(donationsRankingTask, 1000 * 60 * 1,5);
     }, 4000); 
-   
+    */
 
 });
 
@@ -255,7 +229,7 @@ client.on(Events.MessageCreate, async message => {
 });
 
 
-client.on('interactionCreate', async (interaction) => {
+/* client.on('interactionCreate', async (interaction) => {
     if (!interaction.isButton()) return;  // Asegúrate de que la interacción sea un botón
 
     if (interaction.customId === 'sendReportTomateTeam') {
@@ -300,6 +274,6 @@ client.on('interactionCreate', async (interaction) => {
         }
 
     }
-});
+}); */
 
 client.login(token); 

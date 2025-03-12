@@ -1,0 +1,33 @@
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de log
+*.log
+
+# Dependencias
+node_modules/
+vendor/
+
+# Archivos de compilación
+dist/
+build/
+
+# Archivos temporales
+*.tmp
+*.swp
+
+# Configuración de IDEs
+.vscode/
+.idea/
+*.code-workspace
+
+# Archivos de entorno
+.env
+.env.local
+.env.*.local
+venvF
+
+# Otros
+*.bak
+*.orig
