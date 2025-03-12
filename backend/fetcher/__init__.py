@@ -127,6 +127,7 @@ def compareAdressinfo(adressInfo, otherAdressInfo):
     a= deep_compare(adressInfo["info"], otherAdressInfo["info"], ignore_key=["ping", "keywords"])
     b= compare_namesInList(adressInfo["players"], otherAdressInfo["players"])
     logging.info(f"la comparacion de la info es : {a} y {b}")
+    #return False
     return a and b
 
 def compare_namesInList(list1, list2):
@@ -162,7 +163,7 @@ if  __name__ == "__main__":
     # Programar un evento recurrente cada hora
     scheduler.add_job(
         refreshInfo,  # Función a ejecutar
-        trigger=IntervalTrigger(minutes=8),  # Intervalo de tiempo
+        trigger=IntervalTrigger(minutes=4),  # Intervalo de tiempo
         id="refreshInfoClanPeriodic"  # ID único para evitar duplicados
     )
 

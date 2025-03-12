@@ -30,7 +30,7 @@ const handlerReqireCommand = (carpeta, arg, message)=>{
 
 }
 
-const saveRedisNewMessageSubcription = async ({ type='status', gildID, adress, channelID, messageID})=>{
+const saveRedisNewMessageSubcription = async ({ type='status', gildID, adress, channelID, messageID, seudoTitle=''})=>{
 // hay Type status y voicetitle
 // primero verificas si ya hay un objeto 
     let ipSubcriptionObject = await redis.hget(`adress:sub:${type}`, adress)
@@ -42,7 +42,8 @@ const saveRedisNewMessageSubcription = async ({ type='status', gildID, adress, c
     ipSubcriptionObject[channelID] = {
         gildID: gildID,
         messageID: messageID,
-        channelID: channelID
+        channelID: channelID,
+        seudoTitle: seudoTitle
     }
     // Guardar el objeto en redis
     await redis.hset(`adress:sub:${type}`, adress, JSON.stringify(ipSubcriptionObject))
@@ -61,50 +62,25 @@ const getListRedisIpSubcription = async ({type='status', adress=null, value=null
     return Object.values(clanData)
     
 }
-const getDictRedisIpSubcription = async ({type='status', adress=null })=>{
+const getInfoAdressForRedis = async ({ adress=null })=>{ 
     if (!adress){
         throw new Error('No se han proporcionado los datos necesarios.');
     }
-    const subAdress = await redis.hget(`adress:sub:${type}`, adress)
-    return subAdress ? JSON.parse(subAdress) : {}
+    let infoAdress = await redis.hget(`adressInfo`, adress)
+    infoAdress = infoAdress ? JSON.parse(infoAdress) : null
+    // formatear info del adress
+    if (infoAdress){
+        console.log("esta es la info pre formated; ", infoAdress)
+        infoAdress = infoServerFormatted({ infoAdress })
+    }
+    return infoAdress
+
 }
 
 
 
 
-
-/* const generateEmbedsLogs = ({membersDict={}, logsDonationList={}})=>{
-    const MAX_LOGS = 9;
-    if (!membersDict || !logsDonationList) throw new Error('No se han proporcionado los datos necesarios.');
-    const donationLogs = [...logsDonationList];
-    // Verifica si el array supera el límite
-    if (donationLogs.length > MAX_LOGS) {
-      // Elimina los elementos más antiguos (los primeros)
-      donationLogs.splice(-1 * (donationLogs.length - MAX_LOGS));
-    }
-    let embeds = []
-    const TitleEmbed = new EmbedBuilder()
-        .setColor('#0099ff')
-        .setTitle(`≫ ───────≪•◦Registro donaciones del clan•◦≫ ───────≪`)
-        .setDescription('Este es el registro de las ultimas donaciones del clan')
-        .setTimestamp()
-    embeds.push(TitleEmbed)
-
-    let n=1
-    for (const log of donationLogs.reverse()){
-        let embed=generateRegister({ members:membersDict, NRegistro: n, logMembers: log.members });
-        if (embed)
-            embeds.push(embed)
-            n++
-
-    }
-    return embeds
-} */
-
-
-
-
-const exampleTask = async () => {
+/* const exampleTask = async () => {
     const boton = new ButtonBuilder()
         .setCustomId('sendReportTomateTeam')  // Identificador único para el botón
         .setLabel('Presionar aquí')  // Etiqueta del botón
@@ -115,7 +91,6 @@ const exampleTask = async () => {
 
     // Enviar el mensaje con el botón
 
-   
     const targetChannelId = '1327408280217059444'; 
     const channel = client.channels.cache.get(targetChannelId);
 
@@ -128,22 +103,19 @@ const exampleTask = async () => {
             channel.send({
               content: '',
                 embeds: [embed],
-               components: [fila],
-            
+               components: [fila],            
             });
         } else {
             console.log('Canal no encontrado.');
         }
-
-
-
-}
+}*/
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
 
     //guardar en redis el mensaje de subcripcion para testear 
-    saveRedisNewMessageSubcription({type:'status', gildID:'1349159517270708356', adress:'104.234.7.8:2363', channelID:'1349159517971021928', messageID:'1349161450349789186'})
+    saveRedisNewMessageSubcription({type:'status', gildID:'1349159517270708356', adress:'104.234.7.8:2363', channelID:'1349159517971021928', messageID:'1349161450349789186', seudoTitle:'Servidor 1'})
+    saveRedisNewMessageSubcription({type:'voiceTitle', gildID:'1349159517270708356', adress:'104.234.7.8:2363', channelID:'1349159517971021928', messageID:'1349161450349789186', seudoTitle:'Servidor 1'})
     // suscribire a un canal en redis 
     subscriber.subscribe('adressChangeInfo', (err, count) => {
         if (err) {
@@ -156,40 +128,47 @@ client.on('ready', () => {
     subscriber.on('message', async (channel, message) => {
         console.log(`Mensaje recibido en el canal ${channel}: ${message}`);
         if (channel === 'adressChangeInfo') {
-            console.log('Mensaje de cambio de ip recibido:', message);
             const ip = message;
             const listValuesSub = await getListRedisIpSubcription({type:'status', adress:ip})
             console.log(listValuesSub)
-            for (const valuesSub of listValuesSub){
-                if (valuesSub.channelID && valuesSub.messageID){
-                    await findAndEditMessageText(
-                        client, 
-                        valuesSub.channelID, 
-                        valuesSub.messageID, 
-                        {content: `La ip ${ip} ha cambiado de estado`}
-                    )
+            //buscar la info 
+            const infoAdress = await getInfoAdressForRedis({ adress: ip });
+            if (infoAdress){
+                for (const valuesSub of listValuesSub){
+                    if (valuesSub.channelID && valuesSub.messageID){
+                        const embed = new EmbedBuilder()
+                        .setColor('#0099ff')
+                        .setTitle(`≫ ${valuesSub.seudoTitle} ≪`)
+                        .setDescription(`${infoAdress.serverName}`)
+                        .addFields(
+                            { name: 'Modo', value: `${infoAdress.game}`, inline: true },
+                            { name: 'Mapa', value: `${infoAdress.mapName}`, inline: true },
+                            { name: 'Jugadores', value: `${infoAdress.playerCount}/${infoAdress.maxPlayers}`, inline: true },
+                            { name: 'Contraseña:', value: `${infoAdress.passwordProtected ? 'Sí' : 'No'}`, inline: true },
+                            { name: 'Versión', value: `${infoAdress.version}`, inline: true },
+                            { name: 'SteamId', value: `${infoAdress.steamId}`, inline: true },
+                            
+                        
+                        )
+                        .setImage('https://cdn.discordapp.com/attachments/1349294304455163938/1349294670806646824/36636746158cb38795e0eb6cdde17624d7183ed4.png?ex=67d29416&is=67d14296&hm=fc441b5728558c3286e726cd3c2acb336a2a65ba4b00f131673213df7bf924fb&')
+                        .setTimestamp();
+
+
+                        await findAndEditMessageText(
+                            client, 
+                            valuesSub.channelID, 
+                            valuesSub.messageID, 
+                            {content: "", embeds: [embed]}
+                        )
+                    }
                 }
             }
-        }
-    
-    });
-
-
-
-
-
-    // Espera 10 segundos antes de ejecutar por primera vez
-    /* setTimeout(() => {
-        donationsRankingTask(); 
-
-        // Programa la ejecución repetitiva cada 2 minutos (120,000 ms)
-        setInterval(donationsRankingTask, 1000 * 60 * 1,5);
-    }, 4000); 
-    */
+        } 
+    })
 
 });
 
-client.on(Events.MessageCreate, async message => {
+/*client.on(Events.MessageCreate, async message => {
     console.log('Message received:', message.guildId, message.content, message.channelId);
     if (!message.guild) {
           return message.reply('Este comando solo puede ser usado en un servidor de Discord.');
@@ -226,7 +205,8 @@ client.on(Events.MessageCreate, async message => {
     
     
 
-});
+});*/
+
 
 
 /* client.on('interactionCreate', async (interaction) => {
@@ -276,4 +256,43 @@ client.on(Events.MessageCreate, async message => {
     }
 }); */
 
-client.login(token); 
+client.login(token);
+
+
+
+
+
+
+
+
+
+
+const infoServerFormatted = ({ infoAdress }) => {
+    let dictInfoFormatted = {
+        protocol: infoAdress.info.protocol,
+        serverName: infoAdress.info.server_name,
+        mapName: infoAdress.info.map_name,
+        folder: infoAdress.info.folder,
+        game: infoAdress.info.game,
+        appId: infoAdress.info.app_id,
+        playerCount: infoAdress.info.player_count,
+        maxPlayers: infoAdress.info.max_players,
+        botCount: infoAdress.info.bot_count,
+        serverType: infoAdress.info.server_type,
+        platform: infoAdress.info.platform,
+        passwordProtected: infoAdress.info.password_protected,
+        vacEnabled: infoAdress.info.vac_enabled,
+        version: infoAdress.info.version,
+        edf: infoAdress.info.edf,
+        ping: infoAdress.info.ping,
+        port: infoAdress.info.port,
+        steamId: infoAdress.info.steam_id,
+        stvPort: infoAdress.info.stv_port,
+        stvName: infoAdress.info.stv_name,
+        gameId: infoAdress.info.game_id,
+        players: infoAdress.players,
+        updatedInfo: infoAdress.updatedInfo
+    };
+
+    return dictInfoFormatted;
+};
