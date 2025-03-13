@@ -8,12 +8,12 @@ const Redis = require('ioredis');
 require('dotenv').config({ path: '../../.env' });
 
 const redis = new Redis({
-    host:'localhost',
-    port:6379
+    host:process.env.REDISHOST,
+    port:process.env.REDISPORT
 });
 const subscriber = new Redis({
-    host: 'localhost',
-    port: 6379
+    host: process.env.REDISHOST,
+    port: process.env.REDISPORT
 });
 
 const client = new Client({

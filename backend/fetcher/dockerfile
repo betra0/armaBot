@@ -1,0 +1,18 @@
+
+FROM python:3.12-slim
+
+# Define el directorio de trabajo dentro del contenedor
+WORKDIR /app
+
+# Copia los archivos cron jobs desde el directorio src en la API
+
+# Copia los requisitos si es necesario
+COPY ./requirements.txt /app/  
+# Copia el resto de los archivos de la API
+COPY ./ /app/
+# Instalar dependencias
+RUN pip install --upgrade pip 
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Comando por defecto: Ejecutar cron_jobs.py
+CMD ["python", "__init__.py"]

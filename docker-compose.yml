@@ -1,0 +1,53 @@
+services:
+ 
+
+
+  ds:
+    build:
+      context: ./backend/discordBot
+      dockerfile: Dockerfile        # Asegúrate de tener un Dockerfile configurado en esa carpeta
+    restart: always               # El contenedor se reinicia siempre que se detenga
+    environment:
+      - BOTDSTOKEN=${BOTDSTOKEN}   # Token del bot
+      - APIHOST=backweb            # Nombre del servicio backend para la API
+      - APIPORT=80                 # Puerto del servicio API
+      - INTENTSDS=${INTENTSDS}     # Intenciones necesarias para el bot
+      - HOSTREDIS=redis            # Nombre del servicio Redis
+      - REDISPORT=6379            # Puerto del servicio Redis
+    depends_on: 
+      - redis                  
+    networks:                    # Conexión a la red back-network
+      - back-network
+
+  redis:
+     image: redis:latest
+     restart: always
+     command: ["redis-server", "--appendonly", "yes"]
+     volumes:
+       - redis_data:/data
+     networks:
+       - back-network
+  
+  fetcher:
+    build:
+      context: ./backend/fetcher
+      dockerfile: dockerfile
+    restart: always
+    networks:
+      - back-network
+    environment:
+      - REDISHOST=redis
+      - REDISPORT=6379
+    depends_on:
+      - redis
+      - ds
+
+    
+    
+
+networks:
+  back-network:
+    driver: bridge
+
+volumes:
+  redis_data:

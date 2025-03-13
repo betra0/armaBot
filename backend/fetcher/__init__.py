@@ -7,13 +7,14 @@ import logging
 from redis import Redis
 import a2s
 import json
+import os
 
 # Crear una instancia del scheduler
 scheduler = BackgroundScheduler()
 scheduler.start()
 logging.basicConfig(level=logging.INFO)
 isError=False
-r = Redis(host='localhost', port=6379, db=0)
+r = Redis(host=os.getenv("REDISHOST"), port=os.getenv("REDISPORT"), db=0)
 
 
 def refreshInfo():
