@@ -20,8 +20,6 @@ logging.basicConfig(level=logging.INFO)
 isError=False
 r = Redis(host=os.getenv("REDISHOST"), port=os.getenv("REDISPORT"), db=0)
 
-logging.info("¡estas son las env! : ", os.getenv("REDISHOST")," ",os.getenv("REDISPORT")," ",os.getenv("REFRESH_INTERVAL"))
-
 
 def refreshInfo():
     global isError
@@ -183,13 +181,14 @@ def compare_namesInList(list1, list2):
     # Comparar los conjuntos (ignora el orden automáticamente)
     return names1 == names2
 def compareAmoutOfPlayersAndPublishForRedis(dict1Info, dict2Info, adress):
+    logging.info(f"la info de dict1 es : {dict1Info}, la info de dict2 es : {dict2Info}")
+
     if dict1Info is None and dict2Info is None:
         return False
     elif dict1Info is None or dict2Info is None:
         pass
     # si el estatus es diferente al compara es prioridad avisarle al redis 
-    logging.info(f"la info de dict1 es : {dict1Info}, la info de dict2 es : {dict2Info}")
-    if dict1Info["status"] != dict2Info["status"]: 
+    elif dict1Info["status"] != dict2Info["status"]: 
         pass
     elif (dict1Info["info"]["player_count"] and dict2Info["info"]["player_count"]) and (dict1Info["info"]["player_count"]) != (dict2Info["info"]["player_count"]): 
         pass
@@ -229,6 +228,7 @@ if  __name__ == "__main__":
     r2=searchAdressInRedis("104.234.7.8:2363")
     logging.info(f"la info en redis es : {r2}\n")
     insertIpInRedis()
+    time.sleep(8)
     refreshIpsinfo()
     debugPublishRedis()
     # Programar un evento recurrente cada hora

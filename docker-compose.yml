@@ -38,6 +38,7 @@ services:
     environment:
       - REDISHOST=redis
       - REDISPORT=6379
+      - REFRESH_INTERVAL=${REFRESH_INTERVAL}
     depends_on:
       - redis
       - ds
