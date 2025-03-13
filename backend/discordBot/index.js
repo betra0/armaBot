@@ -2,7 +2,7 @@ const {Client, Events, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilde
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const findAndEditMessageText = require('./services/findAndEditMessageText');
+const { findAndEditMessageText, findAndEditChannelName } = require('./services/findAndEditMessageText');
 const generateRegister = require('./other/generateRegister');
 const Redis = require('ioredis');
 require('dotenv').config({ path: '../../.env' });
@@ -70,7 +70,7 @@ const getInfoAdressForRedis = async ({ adress=null })=>{
     infoAdress = infoAdress ? JSON.parse(infoAdress) : null
     // formatear info del adress
     if (infoAdress){
-        console.log("esta es la info pre formated; ", infoAdress)
+        //console.log("esta es la info pre formated; ", infoAdress)
         infoAdress = infoServerFormatted({ infoAdress })
     }
     return infoAdress
@@ -110,14 +110,27 @@ const getInfoAdressForRedis = async ({ adress=null })=>{
         }
 }*/
 
-client.on('ready', () => {
+client.on('ready', async () => {
     console.log(`Logged in as ${client.user.tag}`);
 
     //guardar en redis el mensaje de subcripcion para testear 
     saveRedisNewMessageSubcription({type:'status', gildID:'1349159517270708356', adress:'104.234.7.8:2363', channelID:'1349159517971021928', messageID:'1349161450349789186', seudoTitle:'Servidor 1'})
-    saveRedisNewMessageSubcription({type:'voiceTitle', gildID:'1349159517270708356', adress:'104.234.7.8:2363', channelID:'1349159517971021928', messageID:'1349161450349789186', seudoTitle:'Servidor 1'})
+    saveRedisNewMessageSubcription({type:'playerCountInTitle', gildID:'1349159517270708356', adress:'104.234.7.8:2363', channelID:'1349159517971021929', messageID:'', seudoTitle:'𝗦𝗲𝗿𝘃𝗲𝗿-1'})
+    saveRedisNewMessageSubcription({type:'status', gildID:'1349159517270708356', adress:'104.234.7.16:2353', channelID:'1349528710574772316', messageID:'1349529750028156948', seudoTitle:'Servidor 2'})
+    
+    // test de change name audi chanel
+    
+    //await findAndEditChannelName(client, '1349159517971021929', 'Nuevo Nombre');
+    console.log('Cambio de nombre de canal de voz.');
     // suscribire a un canal en redis 
     subscriber.subscribe('adressChangeInfo', (err, count) => {
+        if (err) {
+          console.error('Error al suscribirse a subscriber:', err);
+        } else {
+          console.log(`Suscrito a ${count} canal(es) en subscriber.`);
+        }
+    });
+    subscriber.subscribe('adressChangePlayerCount', (err, count) => {
         if (err) {
           console.error('Error al suscribirse a subscriber:', err);
         } else {
@@ -127,20 +140,28 @@ client.on('ready', () => {
     
     subscriber.on('message', async (channel, message) => {
         console.log(`Mensaje recibido en el canal ${channel}: ${message}`);
-        if (channel === 'adressChangeInfo') {
+        if (channel === 'adressChangeInfo' || channel === 'adressChangePlayerCount'){ 
             const ip = message;
-            const listValuesSub = await getListRedisIpSubcription({type:'status', adress:ip})
+            let type = channel === 'adressChangeInfo' ? 'status' : 'playerCountInTitle'
+            const listValuesSub = await getListRedisIpSubcription({type:type, adress:ip})
             console.log(listValuesSub)
+            if (!listValuesSub || listValuesSub.length === 0){
+                return
+            }   
             //buscar la info 
             const infoAdress = await getInfoAdressForRedis({ adress: ip });
-            if (infoAdress){
-                for (const valuesSub of listValuesSub){
-                    if (valuesSub.channelID && valuesSub.messageID){
-                        const embed = new EmbedBuilder()
-                        .setColor('#0099ff')
-                        .setTitle(`≫ ${valuesSub.seudoTitle} ≪`)
-                        .setDescription(`${infoAdress.serverName}`)
-                        .addFields(
+            if (!infoAdress){
+                return
+            }
+            for (const valuesSub of listValuesSub){
+                
+                if ( type==='status' && valuesSub.channelID && valuesSub.messageID){
+                    allEbeds = []
+                    const embed = new EmbedBuilder()
+                    .setColor('#0099ff')
+                    .setTitle(`≫ ${valuesSub.seudoTitle} ≪`)
+                    .setDescription(`${infoAdress.serverName}`)
+                    .addFields(
                             { name: 'Modo', value: `${infoAdress.game}`, inline: true },
                             { name: 'Mapa', value: `${infoAdress.mapName}`, inline: true },
                             { name: 'Jugadores', value: `${infoAdress.playerCount}/${infoAdress.maxPlayers}`, inline: true },
@@ -149,26 +170,49 @@ client.on('ready', () => {
                             { name: 'SteamId', value: `${infoAdress.steamId}`, inline: true },
                             
                         
-                        )
-                        .setImage('https://cdn.discordapp.com/attachments/1349294304455163938/1349294670806646824/36636746158cb38795e0eb6cdde17624d7183ed4.png?ex=67d29416&is=67d14296&hm=fc441b5728558c3286e726cd3c2acb336a2a65ba4b00f131673213df7bf924fb&')
-                        .setTimestamp();
+                    )
+                    .setImage('https://cdn.discordapp.com/attachments/1349294304455163938/1349294670806646824/36636746158cb38795e0eb6cdde17624d7183ed4.png?ex=67d29416&is=67d14296&hm=fc441b5728558c3286e726cd3c2acb336a2a65ba4b00f131673213df7bf924fb&')
+                    .setTimestamp();
+                    allEbeds.push(embed)
+                    if(infoAdress.playerCount >0 && infoAdress.players){
+                            // hacer un ermbed solo para los 7 primeros players
+                            fieldsPlayers = []
+                            for (let i = 0; i < infoAdress.players.length; i++){
+                                fieldsPlayers.push({name: `${infoAdress.players[i].name}`, value: `${Number(infoAdress.players[i].score) * 100} Puntos`, inline: true})
+                            }
+                            const embed2 = new EmbedBuilder()
+                                .setColor('#0099ff')
+                                .setTitle(`Jugadores ${infoAdress.playerCount}/${infoAdress.maxPlayers}`)
+                                .addFields(fieldsPlayers)
+                            allEbeds.push(embed2)
 
-
-                        await findAndEditMessageText(
+                    }
+                    await findAndEditMessageText(
                             client, 
                             valuesSub.channelID, 
                             valuesSub.messageID, 
-                            {content: "", embeds: [embed]}
-                        )
-                    }
+                            {content: "", embeds: allEbeds}
+                    )
+                }else if (type==='playerCountInTitle' && valuesSub.channelID ){
+                    console.log('cambiand el d nombre de canal de voz por llamda de redis', valuesSub.channelID, `${valuesSub.seudoTitle} ${infoAdress.playerCount}/${infoAdress.maxPlayers}`)
+                    await findAndEditChannelName(
+                        client, 
+                        valuesSub.channelID, 
+                        `🎮 ${valuesSub.seudoTitle} │ ${infoAdress.playerCount}/${infoAdress.maxPlayers} 👥`
+                    );
+                    
+                    console.log('devria haber cambiado el nombre del canal de voz')
+                    // aqui se edita el titulo del canal de voz 
+
                 }
             }
+            
         } 
     })
 
 });
 
-/*client.on(Events.MessageCreate, async message => {
+client.on(Events.MessageCreate, async message => {
     console.log('Message received:', message.guildId, message.content, message.channelId);
     if (!message.guild) {
           return message.reply('Este comando solo puede ser usado en un servidor de Discord.');
@@ -205,7 +249,7 @@ client.on('ready', () => {
     
     
 
-});*/
+});
 
 
 

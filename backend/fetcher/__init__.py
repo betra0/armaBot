@@ -54,12 +54,31 @@ def refreshIpsinfo():
                 oldAdressInfo = searchAdressInRedis(address)
                 if oldAdressInfo and compareAdressinfo(oldAdressInfo, infoadresDict):
                     logging.info("¡La información no ha cambiado!")
-                else:
+                elif oldAdressInfo:
                     saveAdressInRedis(address, infoadresDict)
                     # avisar de cambio en redis
                     if isSubadressInRedis(address):
                         logging.info("¡avisar en redis que la info cambio!")
                         publishNewChange(address)
+                        #comparar la cantidad de jugadores y avisar a redis
+                        # si la cantidad de jugadoeres cambio entonces le avisara a redis
+                        compareAmoutOfPlayersAndPublishForRedis(oldAdressInfo, infoadresDict, address)
+                else:
+                    saveAdressInRedis(address, infoadresDict)
+                    if isSubadressInRedis(address):
+                        logging.info("¡avisar en redis que la info cambio!")
+                        publishNewChange(address)
+                        #comparar la cantidad de jugadores y avisar a redis
+                        # si la cantidad de jugadoeres cambio entonces le avisara a redis
+                        compareAmoutOfPlayersAndPublishForRedis(oldAdressInfo, infoadresDict, address)
+
+
+
+
+
+                
+
+                
         except Exception as e: 
             logging.error(f"Error al consultar la información de la ip: {ip} en el puerto: {port} : {e}")
             raise e
@@ -80,6 +99,7 @@ def getIpForRedis():
 def insertIpInRedis():
     logging.info("Insertando las ips para consultar de redis.")
     r.sadd("ipsTofech", "104.234.7.8:2363")
+    r.sadd("ipsTofech", "104.234.7.16:2353")
     #r .sadd("ipsTofech", "192.168.0.27:2363")
     # otra insecion para test 
     # para hset
@@ -137,6 +157,15 @@ def compare_namesInList(list1, list2):
 
     # Comparar los conjuntos (ignora el orden automáticamente)
     return names1 == names2
+def compareAmoutOfPlayersAndPublishForRedis(dict1Info, dict2Info, adress):
+    # Comparar la cantidad de jugadores
+    if not (dict1Info["info"]["player_count"]) == (dict2Info["info"]["player_count"]):
+        # Publicar en Redis
+        r.publish("adressChangePlayerCount", adress)
+        logging.info('se supone que ya se aviso del cambio de players ')
+
+        return True
+
 
 def deep_compare(dict1, dict2, ignore_key=[]):
     # Si ambos son diccionarios, compararlos recursivamente
