@@ -8,6 +8,10 @@ from redis import Redis
 import a2s
 import json
 import os
+import socket
+from dotenv import load_dotenv
+load_dotenv('../../.env')
+
 
 # Crear una instancia del scheduler
 scheduler = BackgroundScheduler()
@@ -15,6 +19,8 @@ scheduler.start()
 logging.basicConfig(level=logging.INFO)
 isError=False
 r = Redis(host=os.getenv("REDISHOST"), port=os.getenv("REDISPORT"), db=0)
+
+logging.info("¡estas son las env! : ", os.getenv("REDISHOST")," ",os.getenv("REDISPORT")," ",os.getenv("REFRESH_INTERVAL"))
 
 
 def refreshInfo():
@@ -77,6 +83,7 @@ def refreshIpsinfo():
 
 
 
+
                 
 
                 
@@ -115,12 +122,14 @@ def isSubadressInRedis(address):
         return True
 def publishNewChange(adress):
     r.publish("adressChangeInfo", adress)
-    logging.info(f"Se ha publicado un cambio en la dirección: {adress}")
+    logging.info(f"Se ha publicado un cambio en la dirección: {adress}") 
+
+
 def getInfoAdresFromA2s(ip, port):
     try:
         serverAddress = (ip, int(port))
-        serverInfo = a2s.info(serverAddress)
-        players = a2s.players(serverAddress)
+        serverInfo = a2s.info(serverAddress, timeout=8)
+        players = a2s.players(serverAddress, timeout=8)
         
         # Convertir jugadores a diccionarios
         playerslistFormat = [player.__dict__ for player in players]
@@ -128,12 +137,26 @@ def getInfoAdresFromA2s(ip, port):
         return {
             "info": serverInfo.__dict__,
             "players": playerslistFormat,
-            "updatedInfo": datetime.now(timezone.utc).isoformat()
+            "updatedInfo": datetime.now(timezone.utc).isoformat(),
+            "status":True
             }
+    except socket.timeout:
+        logging.error(f"no se pudo establecer conexion con el servidor {ip}:{port}")
+        return {
+            "info": {},
+            "players": [],
+            "updatedInfo": None,
+            "status":False
+        }
+    except OSError as e:
+        logging.error(f"Error de conexión al consultar la información de la ip: {ip} en el puerto: {port} : {e}")
+        return
     except Exception as e:
-        logging.error(f"Error al consultar la información de la ip: {ip} en el puerto: {port} : {e}")
+        logging.error(f"Error Desconocido al consultar la información de la ip: {ip} en el puerto: {port} : {e}")
         #raise e
         return None
+
+
 def searchAdressInRedis(address):
     res = r.hget("adressInfo", address)  # Obtiene el valor de Redis
 
@@ -147,9 +170,10 @@ def compareAdressinfo(adressInfo, otherAdressInfo):
     # hacer una comparacion profunda entre los dos diccionarios ignorando la clave upda
     a= deep_compare(adressInfo["info"], otherAdressInfo["info"], ignore_key=["ping", "keywords"])
     b= compare_namesInList(adressInfo["players"], otherAdressInfo["players"])
-    logging.info(f"la comparacion de la info es : {a} y {b}")
+    c= adressInfo["status"] == otherAdressInfo["status"]
+    logging.info(f"la comparacion de la info es : {a} y {b} y {c}")
     #return False
-    return a and b
+    return a and b and c
 
 def compare_namesInList(list1, list2):
     # Extraer los valores de la clave "name" en ambas listas
@@ -159,13 +183,21 @@ def compare_namesInList(list1, list2):
     # Comparar los conjuntos (ignora el orden automáticamente)
     return names1 == names2
 def compareAmoutOfPlayersAndPublishForRedis(dict1Info, dict2Info, adress):
-    # Comparar la cantidad de jugadores
-    if not (dict1Info["info"]["player_count"]) == (dict2Info["info"]["player_count"]):
-        # Publicar en Redis
-        r.publish("adressChangePlayerCount", adress)
-        logging.info('se supone que ya se aviso del cambio de players ')
-
-        return True
+    if dict1Info is None and dict2Info is None:
+        return False
+    elif dict1Info is None or dict2Info is None:
+        pass
+    # si el estatus es diferente al compara es prioridad avisarle al redis 
+    logging.info(f"la info de dict1 es : {dict1Info}, la info de dict2 es : {dict2Info}")
+    if dict1Info["status"] != dict2Info["status"]: 
+        pass
+    elif (dict1Info["info"]["player_count"] and dict2Info["info"]["player_count"]) and (dict1Info["info"]["player_count"]) != (dict2Info["info"]["player_count"]): 
+        pass
+    else: 
+        return False
+    r.publish("adressChangePlayerCount", adress)
+    logging.info('se aviso a titleChanel que cambio status o cantidad de jugadores')
+    return True
 
 
 def deep_compare(dict1, dict2, ignore_key=[]):
@@ -183,6 +215,14 @@ def deep_compare(dict1, dict2, ignore_key=[]):
         return True
     # Si son valores simples (no diccionarios), compararlos directamente
     return dict1 == dict2
+
+def debugPublishRedis():
+   #get alladress
+    addressList = getIpForRedis()
+    for address in addressList:
+        logging.info(f"la adress es : {address}")
+        r.publish("adressChangeInfo", address)
+        r.publish("adressChangePlayerCount", address)
     
 if  __name__ == "__main__":
     # primero leer  lo que ya hay en el redis para debug
@@ -190,10 +230,11 @@ if  __name__ == "__main__":
     logging.info(f"la info en redis es : {r2}\n")
     insertIpInRedis()
     refreshIpsinfo()
+    debugPublishRedis()
     # Programar un evento recurrente cada hora
     scheduler.add_job(
         refreshInfo,  # Función a ejecutar
-        trigger=IntervalTrigger(minutes=4),  # Intervalo de tiempo
+        trigger=IntervalTrigger(seconds=int(os.getenv("REFRESH_INTERVAL"))),
         id="refreshInfoClanPeriodic"  # ID único para evitar duplicados
     )
 

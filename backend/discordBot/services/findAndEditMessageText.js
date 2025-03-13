@@ -31,12 +31,17 @@ const findAndEditMessageText = async (client ,idChannel, idMessage, data='') => 
         throw err;
     }   
 }
+
+
+
+
+
 const findAndEditChannelName = async (client, idChannel, newName) => {
     console.log('Buscando canal...');
     try {
         const channel = await client.channels.fetch(idChannel);
 
-        if (channel && channel.isVoiceBased()) {
+        if (channel) {
             await channel.setName(newName);
             console.log(`Nombre del canal cambiado a: ${newName}`);
             return true;

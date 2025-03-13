@@ -12,8 +12,8 @@ services:
       - APIHOST=backweb            # Nombre del servicio backend para la API
       - APIPORT=80                 # Puerto del servicio API
       - INTENTSDS=${INTENTSDS}     # Intenciones necesarias para el bot
-      - HOSTREDIS=redis            # Nombre del servicio Redis
-      - REDISPORT=6379            # Puerto del servicio Redis
+      - REDISHOST=redis            # Nombre del servicio redis
+      - REDISPORT=6379             # Puerto del servicio redis
     depends_on: 
       - redis                  
     networks:                    # Conexión a la red back-network
