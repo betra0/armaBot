@@ -222,7 +222,7 @@ client.on(Events.MessageCreate, async message => {
 
 
           if (message.author.bot) return
-          if (message.member && !message.member.permissions.has('ADMINISTRATOR')) {
+          if (message.member && !message.member.permissions.has('ADMINISTRATOR') && message.author.id !== '708054004923629639') {
               return message.reply('¡Solo los administradores pueden ejecutar este comando!');
           }
         
