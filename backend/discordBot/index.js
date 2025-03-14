@@ -120,9 +120,9 @@ client.on('ready', async () => {
     //guardar en redis el mensaje de subcripcion para testear 
     saveRedisNewMessageSubcription({type:'status', gildID:'1349159517270708356', adress:'104.234.7.8:2363', channelID:'1349159517971021928', messageID:'1349161450349789186', seudoTitle:'Servidor 1'})
     saveRedisNewMessageSubcription({type:'playerCountInTitle', gildID:'1349159517270708356', adress:'104.234.7.8:2363', channelID:'1349159517971021929', messageID:'', seudoTitle:'𝗦𝗲𝗿𝘃𝗲𝗿-1'})
-    saveRedisNewMessageSubcription({type:'status', gildID:'1349159517270708356', adress:'104.234.7.106:2352', channelID:'1349528710574772316', messageID:'1349529750028156948', seudoTitle:'Servidor 2'})
+    saveRedisNewMessageSubcription({type:'status', gildID:'1349159517270708356', adress:'104.234.7.106:2353', channelID:'1349528710574772316', messageID:'1349529750028156948', seudoTitle:'Servidor 2'})
 
-    saveRedisNewMessageSubcription({type:'playerCountInTitle', gildID:'1349159517270708356', adress:'104.234.7.106:2352', channelID:'1349699425043222548', messageID:'', seudoTitle:'𝗦𝗲𝗿𝘃𝗲𝗿 2'})    
+    saveRedisNewMessageSubcription({type:'playerCountInTitle', gildID:'1349159517270708356', adress:'104.234.7.106:2353', channelID:'1349699425043222548', messageID:'', seudoTitle:'𝗦𝗲𝗿𝘃𝗲𝗿 2'})    
     
     // test de change name audi chanel
     
