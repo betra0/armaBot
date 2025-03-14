@@ -6,6 +6,7 @@ const { findAndEditMessageText, findAndEditChannelName } = require('./services/f
 const generateRegister = require('./other/generateRegister');
 const Redis = require('ioredis');
 require('dotenv').config({ path: '../../.env' });
+const { saveRedisNewMessageSubcription } = require('./services/insertInRedis');
 
 console.log('este es el Redis host y port \n ', process.env.REDISHOST, process.env.REDISPORT)
 
@@ -20,10 +21,11 @@ const client = new Client({
     intents:process.env.INTENTSDS
 });
 const token = process.env.BOTDSTOKEN
-const handlerReqireCommand = (carpeta, arg, message)=>{
+
+const handlerReqireCommand = (carpeta, arg, message, redis)=>{
   try{
     const command = require(`./${carpeta}/${arg}`)
-    command.run(message)
+    command.run(message, redis)
   }catch(e){
     console.log(e)
   }
@@ -34,25 +36,7 @@ function toUnicode(text) {
   return text.split('').map(char => `\\u${('0000' + char.charCodeAt(0).toString(16)).slice(-4)}`).join('');
 }
 
-const saveRedisNewMessageSubcription = async ({ type='status', gildID, adress, channelID, messageID, seudoTitle=''})=>{
-// hay Type status y voicetitle
-// primero verificas si ya hay un objeto 
-    let ipSubcriptionObject = await redis.hget(`adress:sub:${type}`, adress)
-    ipSubcriptionObject= ipSubcriptionObject ? JSON.parse(ipSubcriptionObject) : {}
 
-    if (!ipSubcriptionObject[channelID]){
-        ipSubcriptionObject[channelID] = {}
-    }
-    ipSubcriptionObject[channelID] = {
-        gildID: gildID,
-        messageID: messageID,
-        channelID: channelID,
-        seudoTitle: seudoTitle
-    }
-    // Guardar el objeto en redis
-    await redis.hset(`adress:sub:${type}`, adress, JSON.stringify(ipSubcriptionObject))
-
-}
 const getListRedisIpSubcription = async ({type='status', adress=null, value=null })=>{
     // vaslue  e el valor obtenido sin formatear o sin parsear
     //
@@ -118,11 +102,9 @@ client.on('ready', async () => {
     console.log(`Logged in as ${client.user.tag}`);
 
     //guardar en redis el mensaje de subcripcion para testear 
-    saveRedisNewMessageSubcription({type:'status', gildID:'1349159517270708356', adress:'104.234.7.8:2363', channelID:'1349159517971021928', messageID:'1349161450349789186', seudoTitle:'Servidor 1'})
-    saveRedisNewMessageSubcription({type:'playerCountInTitle', gildID:'1349159517270708356', adress:'104.234.7.8:2363', channelID:'1349159517971021929', messageID:'', seudoTitle:'𝗦𝗲𝗿𝘃𝗲𝗿-1'})
-    saveRedisNewMessageSubcription({type:'status', gildID:'1349159517270708356', adress:'104.234.7.106:2353', channelID:'1349528710574772316', messageID:'1349529750028156948', seudoTitle:'Servidor 2'})
+    saveRedisNewMessageSubcription({type:'playerCountInTitle', gildID:'1349159517270708356', adress:'104.234.7.8:2363', channelID:'1349159517971021929', messageID:'', seudoTitle:'𝗦𝗲𝗿𝘃𝗲𝗿-1', redis:redis})
 
-    saveRedisNewMessageSubcription({type:'playerCountInTitle', gildID:'1349159517270708356', adress:'104.234.7.106:2353', channelID:'1349699425043222548', messageID:'', seudoTitle:'𝗦𝗲𝗿𝘃𝗲𝗿 2'})    
+    saveRedisNewMessageSubcription({type:'playerCountInTitle', gildID:'1349159517270708356', adress:'104.234.7.106:2353', channelID:'1349699425043222548', messageID:'', seudoTitle:'𝗦𝗲𝗿𝘃𝗲𝗿 2', redis:redis})    
     
     // test de change name audi chanel
     
@@ -249,11 +231,11 @@ client.on(Events.MessageCreate, async message => {
           if(arg === 'create'){
             const arg = message.content.slice(5).split(' ')[1]
             console.log(arg)
-            handlerReqireCommand('createCommands', arg, message)
+            handlerReqireCommand('createCommands', arg, message, redis)
           }
           else{
             console.log(arg)
-            handlerReqireCommand('adminCommands', arg, message)
+            handlerReqireCommand('adminCommands', arg, message, redis)
           }
           
 
@@ -263,7 +245,7 @@ client.on(Events.MessageCreate, async message => {
       if (message.author.bot) return
       const arg = message.content.slice(1).split(' ')[0]
       console.log(arg)
-      handlerReqireCommand('commands', arg, message)
+      handlerReqireCommand('commands', arg, message, redis)
     }
     
     
