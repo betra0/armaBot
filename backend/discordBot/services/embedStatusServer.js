@@ -1,25 +1,34 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, Embed, InteractionFlags } = require('discord.js');
 const { generateMessageEmbed } = require('./embedMessageGenerator');
-const GenerateEmbedStatusServer = ({infoAdress={}, seudoTitle=''}) => {
+const safeValue = (value, defaultValue = 'Desconocido') => 
+    (typeof value === 'string' && value.trim()) ? value : defaultValue;
+
+const GenerateEmbedStatusServer = ({infoAdress=null, seudoTitle='No definido'}) => {
+    console.log('infoAdress dentro de Gener..EbedStatus: ', infoAdress)
     const allEbeds = []
+    if (!infoAdress){
+         return [generateMessageEmbed({title:'Warning', descripcion:'No se a encontrado Informacion del servidor aun.'}),]
+    }
+    console.log('antes del primer embed')
     const embed = new EmbedBuilder()
     .setColor('#0099ff')
     .setTitle(`≫ ${seudoTitle} ≪`)
     .setDescription(`${infoAdress.serverName}`)
     .addFields(
-            { name: 'Modo', value: `${infoAdress.game}`, inline: true },
-            { name: 'Mapa', value: `${infoAdress.mapName}`, inline: true },
+            { name: 'Modo', value: `${safeValue(infoAdress.game)}`, inline: true },
+            { name: 'Mapa', value: `${safeValue(infoAdress.mapName)}`, inline: true },
             { name: 'Jugadores', value: `${infoAdress.playerCount}/${infoAdress.maxPlayers}`, inline: true },
             { name: 'Contraseña:', value: `${infoAdress.passwordProtected ? 'Sí' : 'No'}`, inline: true },
             { name: 'Versión', value: `${infoAdress.version}`, inline: true },
             { name: 'SteamId', value: `${infoAdress.steamId}`, inline: true },
+            { name: 'IP', value: `${infoAdress.adress}`, inline: true },
+            { name: 'Puerto', value: `${infoAdress.port}`, inline: true },
             
         
     )
     .setImage('https://cdn.discordapp.com/attachments/1349294304455163938/1349294670806646824/36636746158cb38795e0eb6cdde17624d7183ed4.png?ex=67d29416&is=67d14296&hm=fc441b5728558c3286e726cd3c2acb336a2a65ba4b00f131673213df7bf924fb&')
     .setTimestamp();
     allEbeds.push(embed)
-    console.log('status info antes de if; ', infoAdress.status)
     // si el status es false se agrega un embed de error
     if(infoAdress.status == false){
         console.log('status false')
