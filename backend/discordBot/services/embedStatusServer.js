@@ -1,7 +1,24 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, Embed, InteractionFlags } = require('discord.js');
 const { generateMessageEmbed } = require('./embedMessageGenerator');
-const safeValue = (value, defaultValue = 'Desconocido') => 
-    (typeof value === 'string' && value.trim()) ? value : defaultValue;
+const safeValue = (value, defaultValue = 'Desconocido') => {
+    // Si el valor es null o undefined, devolver el valor por defecto
+    if (value == null) {
+        return defaultValue;
+    }
+
+    // Si no es una cadena, convertirlo a cadena
+    if (typeof value !== 'string') {
+        value = String(value);
+    }
+
+    // Si la cadena no está vacía o solo contiene espacios en blanco, devolver el valor
+    if (value.trim()) {
+        return value;
+    }
+
+    // Si no cumple, devolver el valor por defecto
+    return defaultValue;
+};
 
 const GenerateEmbedStatusServer = ({infoAdress=null, seudoTitle='No definido'}) => {
     console.log('infoAdress dentro de Gener..EbedStatus: ', infoAdress)
@@ -15,14 +32,14 @@ const GenerateEmbedStatusServer = ({infoAdress=null, seudoTitle='No definido'}) 
     .setTitle(`≫ ${seudoTitle} ≪`)
     .setDescription(`${infoAdress.serverName}`)
     .addFields(
-            { name: 'Modo', value: `${safeValue(infoAdress.game)}`, inline: true },
-            { name: 'Mapa', value: `${safeValue(infoAdress.mapName)}`, inline: true },
-            { name: 'Jugadores', value: `${infoAdress.playerCount}/${infoAdress.maxPlayers}`, inline: true },
-            { name: 'Contraseña:', value: `${infoAdress.passwordProtected ? 'Sí' : 'No'}`, inline: true },
-            { name: 'Versión', value: `${infoAdress.version}`, inline: true },
-            { name: 'SteamId', value: `${infoAdress.steamId}`, inline: true },
-            { name: 'IP', value: `${infoAdress.adress}`, inline: true },
-            { name: 'Puerto', value: `${infoAdress.port}`, inline: true },
+        { name: 'Modo', value: `${safeValue(infoAdress.game)}`, inline: true },
+        { name: 'Mapa', value: `${safeValue(infoAdress.mapName)}`, inline: true },
+        { name: 'Jugadores', value: `${safeValue(infoAdress.playerCount)}/${safeValue(infoAdress.maxPlayers)}`, inline: true },
+        { name: 'Contraseña:', value: `${safeValue(infoAdress.passwordProtected ? 'Sí' : 'No')}`, inline: true },
+        { name: 'Versión', value: `${safeValue(infoAdress.version)}`, inline: true },
+        { name: 'SteamId', value: `${safeValue(infoAdress.steamId)}`, inline: true },
+        { name: 'IP', value: `${safeValue(infoAdress.adress)}`, inline: true },
+        { name: 'Puerto', value: `${safeValue(infoAdress.port)}`, inline: true },
             
         
     )
