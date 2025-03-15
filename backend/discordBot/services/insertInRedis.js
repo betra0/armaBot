@@ -18,6 +18,12 @@ const saveRedisNewMessageSubcription = async ({redis, type='status', gildID, adr
 
 }
 
+const insertAdressTofetcher = async ({adress, redis})=>{
+    // Guardar el adres en set sadd
+    await redis.sadd(`ipsTofech`, adress)
+}
+
 module.exports = {
-    saveRedisNewMessageSubcription
+    saveRedisNewMessageSubcription,
+    insertAdressTofetcher
 }

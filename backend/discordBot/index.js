@@ -8,6 +8,7 @@ const Redis = require('ioredis');
 require('dotenv').config({ path: '../../.env' });
 const { saveRedisNewMessageSubcription } = require('./services/insertInRedis');
 const { getListRedisIpSubcription, getInfoAdressForRedis } = require('./services/getFromRedis');
+const { GenerateEmbedStatusServer } = require('./services/embedStatusServer');
 
 console.log('este es el Redis host y port \n ', process.env.REDISHOST, process.env.REDISPORT)
 
@@ -273,53 +274,6 @@ ejecutar();
 
 
 
-const GenerateEmbedStatusServer = ({infoAdress={}, seudoTitle=''}) => {
-    const allEbeds = []
-    const embed = new EmbedBuilder()
-    .setColor('#0099ff')
-    .setTitle(`≫ ${seudoTitle} ≪`)
-    .setDescription(`${infoAdress.serverName}`)
-    .addFields(
-            { name: 'Modo', value: `${infoAdress.game}`, inline: true },
-            { name: 'Mapa', value: `${infoAdress.mapName}`, inline: true },
-            { name: 'Jugadores', value: `${infoAdress.playerCount}/${infoAdress.maxPlayers}`, inline: true },
-            { name: 'Contraseña:', value: `${infoAdress.passwordProtected ? 'Sí' : 'No'}`, inline: true },
-            { name: 'Versión', value: `${infoAdress.version}`, inline: true },
-            { name: 'SteamId', value: `${infoAdress.steamId}`, inline: true },
-            
-        
-    )
-    .setImage('https://cdn.discordapp.com/attachments/1349294304455163938/1349294670806646824/36636746158cb38795e0eb6cdde17624d7183ed4.png?ex=67d29416&is=67d14296&hm=fc441b5728558c3286e726cd3c2acb336a2a65ba4b00f131673213df7bf924fb&')
-    .setTimestamp();
-    allEbeds.push(embed)
-    console.log('status info antes de if; ', infoAdress.status)
-    // si el status es false se agrega un embed de error
-    if(infoAdress.status == false){
-        console.log('status false')
-        allEbeds.push(generateErrorEmbed({title:'Error', descripcion:'El servidor se encuentra cerrado o no se ha podido obtener la información.'}))
-    }
-
-    if (infoAdress.playerCount > 0 && infoAdress.players) {
-        let fieldsPlayers = [];
-        const maxFields = 25; // Límite de Discord
-    
-        for (let i = 0; i < Math.min(infoAdress.players.length, maxFields); i++) {
-            fieldsPlayers.push({
-                name: `${infoAdress.players[i].name}`,
-                value: `${Number(infoAdress.players[i].score) * 100} Puntos`,
-                inline: true
-            });
-        }
-    
-        const embed2 = new EmbedBuilder()
-            .setColor('#0099ff')
-            .setTitle(`Jugadores ${infoAdress.playerCount}/${infoAdress.maxPlayers}`)
-            .addFields(fieldsPlayers);
-    
-        allEbeds.push(embed2);
-    }
-    return allEbeds
-}
 
 
 
@@ -331,14 +285,3 @@ const GenerateEmbedStatusServer = ({infoAdress={}, seudoTitle=''}) => {
 
 
 
-
-
-const generateErrorEmbed = ({title='ERROR: ', descripcion='Ocurrio in error Inesperado'
-
-}) => {
-    return new EmbedBuilder()
-        .setColor('#ff0000')
-        .setTitle(title)
-        .setDescription(descripcion);
-}
-'No se ha podido obtener la información del servidor.'

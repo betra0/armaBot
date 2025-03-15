@@ -1,4 +1,7 @@
-const { saveRedisNewMessageSubcription } = require('../services/insertInRedis');
+const { saveRedisNewMessageSubcription, insertAdressTofetcher } = require('../services/insertInRedis');
+const { generateMessageEmbed } = require('../services/embedMessageGenerator');
+const { GenerateEmbedStatusServer } = require('../services/embedStatusServer');
+const { getInfoAdressForRedis } = require('../services/getFromRedis');
 
 
 function parseArgs(input) {
@@ -95,10 +98,7 @@ module.exports = {
             channelId = channelName.id;
 
         }
-        if(!isNewChannel){
-            message.delete()
-            
-        }
+        
         const content= `** Creando Un Status del servidor ${adress} ** ...`
         try {    
             const mensaje = await channelName.send({content: content});
@@ -113,8 +113,25 @@ module.exports = {
                 adress: adress,
                 seudoTitle: seudoTitle
             });
+            insertAdressTofetcher({adress, redis})
+            const infoAdress = await getInfoAdressForRedis({adress, redis})
+            const allEbeds = GenerateEmbedStatusServer({infoAdress, seudoTitle})
 
+            allEbeds.push(generateMessageEmbed(
+                {
+                    title:'Aviso', 
+                    descripcion:'puede que la informacion actualizada no este disponible, espere unos minutos hasta que este mensaje desaparesca.'
+                }))
         
+            await mensaje.edit({content: "", embeds: allEbeds})
+
+
+
+
+
+            if(!isNewChannel){
+                message.delete()  
+            }
 
         } catch (error) {
             console.log(error)
