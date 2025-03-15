@@ -7,6 +7,7 @@ const generateRegister = require('./other/generateRegister');
 const Redis = require('ioredis');
 require('dotenv').config({ path: '../../.env' });
 const { saveRedisNewMessageSubcription } = require('./services/insertInRedis');
+const { getListRedisIpSubcription, getInfoAdressForRedis } = require('./services/getFromRedis');
 
 console.log('este es el Redis host y port \n ', process.env.REDISHOST, process.env.REDISPORT)
 
@@ -32,38 +33,10 @@ const handlerReqireCommand = (carpeta, arg, message, redis)=>{
 
 }
 
-function toUnicode(text) {
-  return text.split('').map(char => `\\u${('0000' + char.charCodeAt(0).toString(16)).slice(-4)}`).join('');
-}
 
 
-const getListRedisIpSubcription = async ({type='status', adress=null, value=null })=>{
-    // vaslue  e el valor obtenido sin formatear o sin parsear
-    //
-    if (!adress && !value){
-        throw new Error('No se han proporcionado los datos necesarios.');
-    } else if(!value){
-        value = await redis.hget(`adress:sub:${type}`, adress)
-    }
-    const clanData= value ? JSON.parse(value) : {}
-    // retornar una lista de objetos
-    return Object.values(clanData)
-    
-}
-const getInfoAdressForRedis = async ({ adress=null })=>{ 
-    if (!adress){
-        throw new Error('No se han proporcionado los datos necesarios.');
-    }
-    let infoAdress = await redis.hget(`adressInfo`, adress)
-    infoAdress = infoAdress ? JSON.parse(infoAdress) : null
-    // formatear info del adress
-    if (infoAdress){
-        //console.log("esta es la info pre formated; ", infoAdress)
-        infoAdress = infoServerFormatted({ infoAdress })
-    }
-    return infoAdress
 
-}
+
 
 
 
@@ -102,15 +75,29 @@ client.on('ready', async () => {
     console.log(`Logged in as ${client.user.tag}`);
 
     //guardar en redis el mensaje de subcripcion para testear 
-    saveRedisNewMessageSubcription({type:'playerCountInTitle', gildID:'1349159517270708356', adress:'104.234.7.8:2363', channelID:'1349159517971021929', messageID:'', seudoTitle:'𝗦𝗲𝗿𝘃𝗲𝗿-1', redis:redis})
+    saveRedisNewMessageSubcription(
+        {
+            type:'playerCountInTitle', 
+            gildID:'1349159517270708356', 
+            adress:'104.234.7.8:2363', 
+            channelID:'1349159517971021929', 
+            messageID:'', 
+            seudoTitle:'𝗦𝗲𝗿𝘃𝗲𝗿-1', redis:redis
+        })
 
-    saveRedisNewMessageSubcription({type:'playerCountInTitle', gildID:'1349159517270708356', adress:'104.234.7.106:2353', channelID:'1349699425043222548', messageID:'', seudoTitle:'𝗦𝗲𝗿𝘃𝗲𝗿 2', redis:redis})    
+    saveRedisNewMessageSubcription(
+        {
+            type:'playerCountInTitle', 
+            gildID:'1349159517270708356', 
+            adress:'104.234.7.106:2353', 
+            channelID:'1349699425043222548', 
+            messageID:'', 
+            seudoTitle:'𝗦𝗲𝗿𝘃𝗲𝗿 2', 
+            redis:redis
+        }) 
+
     
-    // test de change name audi chanel
-    
-    //await findAndEditChannelName(client, '1349159517971021929', 'Nuevo Nombre');
-    console.log('Cambio de nombre de canal de voz.');
-    // suscribire a un canal en redis 
+    // suscribire a los canales de comunicacion con fetcher en redis 
     subscriber.subscribe('adressChangeInfo', (err, count) => {
         if (err) {
           console.error('Error al suscribirse a subscriber:', err);
@@ -131,56 +118,22 @@ client.on('ready', async () => {
         if (channel === 'adressChangeInfo' || channel === 'adressChangePlayerCount'){ 
             const ip = message;
             let type = channel === 'adressChangeInfo' ? 'status' : 'playerCountInTitle'
-            const listValuesSub = await getListRedisIpSubcription({type:type, adress:ip})
+            const listValuesSub = await getListRedisIpSubcription({type:type, adress:ip, redis:redis})
             console.log(listValuesSub)
             if (!listValuesSub || listValuesSub.length === 0){
                 return
             }   
             //buscar la info 
-            const infoAdress = await getInfoAdressForRedis({ adress: ip });
+            const infoAdress = await getInfoAdressForRedis({ adress: ip, redis: redis });
             if (!infoAdress){
                 return
             }
             for (const valuesSub of listValuesSub){
                 console.log('status info; ', infoAdress.status)
                 if ( type==='status' && valuesSub.channelID && valuesSub.messageID){
-                    allEbeds = []
-                    const embed = new EmbedBuilder()
-                    .setColor('#0099ff')
-                    .setTitle(`≫ ${valuesSub.seudoTitle} ≪`)
-                    .setDescription(`${infoAdress.serverName}`)
-                    .addFields(
-                            { name: 'Modo', value: `${infoAdress.game}`, inline: true },
-                            { name: 'Mapa', value: `${infoAdress.mapName}`, inline: true },
-                            { name: 'Jugadores', value: `${infoAdress.playerCount}/${infoAdress.maxPlayers}`, inline: true },
-                            { name: 'Contraseña:', value: `${infoAdress.passwordProtected ? 'Sí' : 'No'}`, inline: true },
-                            { name: 'Versión', value: `${infoAdress.version}`, inline: true },
-                            { name: 'SteamId', value: `${infoAdress.steamId}`, inline: true },
-                            
-                        
-                    )
-                    .setImage('https://cdn.discordapp.com/attachments/1349294304455163938/1349294670806646824/36636746158cb38795e0eb6cdde17624d7183ed4.png?ex=67d29416&is=67d14296&hm=fc441b5728558c3286e726cd3c2acb336a2a65ba4b00f131673213df7bf924fb&')
-                    .setTimestamp();
-                    allEbeds.push(embed)
-                    console.log('status info antes de if; ', infoAdress.status)
-                    if(infoAdress.status == false){
-                        console.log('status false')
-                        allEbeds.push(generateErrorServerEmbed())
-                    }
 
-                    if(infoAdress.playerCount >0 && infoAdress.players){
-                            // hacer un ermbed solo para los 7 primeros players
-                            fieldsPlayers = []
-                            for (let i = 0; i < infoAdress.players.length; i++){
-                                fieldsPlayers.push({name: `${infoAdress.players[i].name}`, value: `${Number(infoAdress.players[i].score) * 100} Puntos`, inline: true})
-                            }
-                            const embed2 = new EmbedBuilder()
-                                .setColor('#0099ff')
-                                .setTitle(`Jugadores ${infoAdress.playerCount}/${infoAdress.maxPlayers}`)
-                                .addFields(fieldsPlayers)
-                            allEbeds.push(embed2)
+                    const allEbeds = GenerateEmbedStatusServer({infoAdress, seudoTitle:valuesSub.seudoTitle})
 
-                    }
                     await findAndEditMessageText(
                             client, 
                             valuesSub.channelID, 
@@ -188,12 +141,9 @@ client.on('ready', async () => {
                             {content: "", embeds: allEbeds}
                     )
                 }else if (type==='playerCountInTitle' && valuesSub.channelID ){
-                    console.log(' estoy en voice: status; ', infoAdress.status, 
-                        'Y esta es LA ADRESs: ', ip)    
                     let text = infoAdress.status == false ? '| CLOSED' : `| ${infoAdress.playerCount}/${infoAdress.maxPlayers}`
                     console.log(
-                        'cambiand el d nombre de canal de voz por llamda de redis', 
-                        valuesSub.channelID, 
+                        'cambiando el del nombre de canal de voz', 
                         `${valuesSub.seudoTitle} ${infoAdress.playerCount}/${infoAdress.maxPlayers}`,
                     )
                     await findAndEditChannelName(
@@ -304,8 +254,8 @@ client.on(Events.MessageCreate, async message => {
 
 
 async function ejecutar() {
-    console.log('Esperando 2 minutos para iniciar el bot...');
-    await sleep( 5 * 1000); // 2 minutos en milisegundos
+    console.log('Esperando unos segundos para iniciar el bot...');
+    await sleep( 4 * 1000); 
     console.log('Iniciando el bot...');
     redis = new Redis({
         host:process.env.REDISHOST,
@@ -323,6 +273,53 @@ ejecutar();
 
 
 
+const GenerateEmbedStatusServer = ({infoAdress={}, seudoTitle=''}) => {
+    const allEbeds = []
+    const embed = new EmbedBuilder()
+    .setColor('#0099ff')
+    .setTitle(`≫ ${seudoTitle} ≪`)
+    .setDescription(`${infoAdress.serverName}`)
+    .addFields(
+            { name: 'Modo', value: `${infoAdress.game}`, inline: true },
+            { name: 'Mapa', value: `${infoAdress.mapName}`, inline: true },
+            { name: 'Jugadores', value: `${infoAdress.playerCount}/${infoAdress.maxPlayers}`, inline: true },
+            { name: 'Contraseña:', value: `${infoAdress.passwordProtected ? 'Sí' : 'No'}`, inline: true },
+            { name: 'Versión', value: `${infoAdress.version}`, inline: true },
+            { name: 'SteamId', value: `${infoAdress.steamId}`, inline: true },
+            
+        
+    )
+    .setImage('https://cdn.discordapp.com/attachments/1349294304455163938/1349294670806646824/36636746158cb38795e0eb6cdde17624d7183ed4.png?ex=67d29416&is=67d14296&hm=fc441b5728558c3286e726cd3c2acb336a2a65ba4b00f131673213df7bf924fb&')
+    .setTimestamp();
+    allEbeds.push(embed)
+    console.log('status info antes de if; ', infoAdress.status)
+    // si el status es false se agrega un embed de error
+    if(infoAdress.status == false){
+        console.log('status false')
+        allEbeds.push(generateErrorEmbed({title:'Error', descripcion:'El servidor se encuentra cerrado o no se ha podido obtener la información.'}))
+    }
+
+    if (infoAdress.playerCount > 0 && infoAdress.players) {
+        let fieldsPlayers = [];
+        const maxFields = 25; // Límite de Discord
+    
+        for (let i = 0; i < Math.min(infoAdress.players.length, maxFields); i++) {
+            fieldsPlayers.push({
+                name: `${infoAdress.players[i].name}`,
+                value: `${Number(infoAdress.players[i].score) * 100} Puntos`,
+                inline: true
+            });
+        }
+    
+        const embed2 = new EmbedBuilder()
+            .setColor('#0099ff')
+            .setTitle(`Jugadores ${infoAdress.playerCount}/${infoAdress.maxPlayers}`)
+            .addFields(fieldsPlayers);
+    
+        allEbeds.push(embed2);
+    }
+    return allEbeds
+}
 
 
 
@@ -334,40 +331,14 @@ ejecutar();
 
 
 
-const infoServerFormatted = ({ infoAdress }) => {
-    let dictInfoFormatted = {
-        protocol: infoAdress.info.protocol,
-        serverName: infoAdress.info.server_name,
-        mapName: infoAdress.info.map_name,
-        folder: infoAdress.info.folder,
-        game: infoAdress.info.game,
-        appId: infoAdress.info.app_id,
-        playerCount: infoAdress.info.player_count,
-        maxPlayers: infoAdress.info.max_players,
-        botCount: infoAdress.info.bot_count,
-        serverType: infoAdress.info.server_type,
-        platform: infoAdress.info.platform,
-        passwordProtected: infoAdress.info.password_protected,
-        vacEnabled: infoAdress.info.vac_enabled,
-        version: infoAdress.info.version,
-        edf: infoAdress.info.edf,
-        ping: infoAdress.info.ping,
-        port: infoAdress.info.port,
-        steamId: infoAdress.info.steam_id,
-        stvPort: infoAdress.info.stv_port,
-        stvName: infoAdress.info.stv_name,
-        gameId: infoAdress.info.game_id,
-        players: infoAdress.players,
-        updatedInfo: infoAdress.updatedInfo,
-        status: infoAdress.status,
-    };
 
-    return dictInfoFormatted;
-};
 
-const generateErrorServerEmbed = (seudoTitle="Error:") => {
+const generateErrorEmbed = ({title='ERROR: ', descripcion='Ocurrio in error Inesperado'
+
+}) => {
     return new EmbedBuilder()
         .setColor('#ff0000')
-        .setTitle(seudoTitle)
-        .setDescription('No se ha podido obtener la información del servidor.');
+        .setTitle(title)
+        .setDescription(descripcion);
 }
+'No se ha podido obtener la información del servidor.'

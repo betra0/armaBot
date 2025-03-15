@@ -99,20 +99,20 @@ module.exports = {
             message.delete()
             
         }
-        const content= ` Titulo: ${seudoTitle} \n ChanelId: ${channelId} Adress: ${adress} se esta creando un mensaje de status del servidor en este canal`
+        const content= `** Creando Un Status del servidor ${adress} ** ...`
         try {    
             const mensaje = await channelName.send({content: content});
         
             const Idmensaje = mensaje.id
-saveRedisNewMessageSubcription({
-    redis: redis,
-    type: 'status',
-    gildID: guildID,
-    channelID: channelId,  // Asegúrate de que sea channelID en lugar de channelId
-    messageID: Idmensaje,
-    adress: adress,
-    seudoTitle: seudoTitle
-});
+            saveRedisNewMessageSubcription({
+                redis: redis,
+                type: 'status',
+                gildID: guildID,
+                channelID: channelId,  // Asegúrate de que sea channelID en lugar de channelId
+                messageID: Idmensaje,
+                adress: adress,
+                seudoTitle: seudoTitle
+            });
 
         
 

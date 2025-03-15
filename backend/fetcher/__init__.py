@@ -165,10 +165,11 @@ def searchAdressInRedis(address):
 def saveAdressInRedis(address, info):
     r.hset("adressInfo", address, json.dumps(info))  # Guarda la información en Redis
 def compareAdressinfo(adressInfo, otherAdressInfo):
-    # hacer una comparacion profunda entre los dos diccionarios ignorando la clave upda
+    # hacer una comparacion de la info para determinar si cambio o no
+    #logging.info(f"la info de la direccion es :\n {adressInfo}, \n la info de la otra direccion es \n: {otherAdressInfo}\n")
     a= deep_compare(adressInfo["info"], otherAdressInfo["info"], ignore_key=["ping", "keywords"])
     b= compare_namesInList(adressInfo["players"], otherAdressInfo["players"])
-    c= adressInfo["status"] == otherAdressInfo["status"]
+    c = adressInfo.get("status", False) == otherAdressInfo.get("status", False)
     logging.info(f"la comparacion de la info es : {a} y {b} y {c}")
     #return False
     return a and b and c
@@ -188,7 +189,7 @@ def compareAmoutOfPlayersAndPublishForRedis(dict1Info, dict2Info, adress):
     elif dict1Info is None or dict2Info is None:
         pass
     # si el estatus es diferente al compara es prioridad avisarle al redis 
-    elif dict1Info["status"] != dict2Info["status"]: 
+    elif dict1Info.get("status", False) != dict2Info.get("status", False): 
         pass
     elif (dict1Info["info"]["player_count"] and dict2Info["info"]["player_count"]) and (dict1Info["info"]["player_count"]) != (dict2Info["info"]["player_count"]): 
         pass
