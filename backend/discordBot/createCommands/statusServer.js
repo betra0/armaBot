@@ -135,7 +135,7 @@ module.exports = {
 
         } catch (error) {
             console.log(error)
-            return message.reply('Hubo un error al enviar el mensaje.');
+            return message.reply(`Hubo un error: \`\`\`${error.stack}\`\`\``);
         }
 
 
