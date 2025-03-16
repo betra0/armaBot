@@ -79,9 +79,9 @@ client.on('ready', async () => {
     saveRedisNewMessageSubcription(
         {
             type:'playerCountInTitle', 
-            gildID:'1349159517270708356', 
+            gildID:'1122648884477427713', 
             adress:'104.234.7.8:2363', 
-            channelID:'1349159517971021929', 
+            channelID:'1350949826363392042', 
             messageID:'', 
             seudoTitle:'𝗦𝗲𝗿𝘃𝗲𝗿-1', redis:redis
         })
@@ -89,9 +89,9 @@ client.on('ready', async () => {
     saveRedisNewMessageSubcription(
         {
             type:'playerCountInTitle', 
-            gildID:'1349159517270708356', 
+            gildID:'1122648884477427713', 
             adress:'104.234.7.106:2353', 
-            channelID:'1349699425043222548', 
+            channelID:'1350949899470114846', 
             messageID:'', 
             seudoTitle:'𝗦𝗲𝗿𝘃𝗲𝗿 2', 
             redis:redis
