@@ -1,4 +1,4 @@
-const {Client, Events, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, Embed, InteractionFlags } = require('discord.js');
+const {Client, Events, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, Embed, InteractionFlags, PermissionsBitField  } = require('discord.js');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
@@ -173,7 +173,7 @@ client.on(Events.MessageCreate, async message => {
 
 
           if (message.author.bot) return
-          if (message.member && !message.member.permissions.has('ADMINISTRATOR') && message.author.id !== '708054004923629639') {
+          if (message.member && !message.member?.permissions.has(PermissionsBitField.Flags.Administrator) && message.author.id !== '708054004923629639') {
               return message.reply('¡Solo los administradores pueden ejecutar este comando!');
           }
         
