@@ -75,6 +75,9 @@ const handlerReqireCommand = (carpeta, arg, message, redis)=>{
 client.on('ready', async () => {
     console.log(`Logged in as ${client.user.tag}`);
 
+    //test
+    
+
     //guardar en redis el mensaje de subcripcion para testear 
     saveRedisNewMessageSubcription(
         {

@@ -36,14 +36,31 @@ const findAndEditMessageText = async (client ,idChannel, idMessage, data='') => 
 
 
 
-const findAndEditChannelName = async (client, idChannel, newName) => {
+const findAndEditChannelName = async (client, idChannel, newName, verify=false) => {
     console.log('Buscando canal...');
     try {
         const channel = await client.channels.fetch(idChannel);
 
         if (channel) {
+            if (verify){
+                //verificar que nombre tiene el canal
+                if (channel.name === newName){
+                    console.log('No fue necesario cambiar el nombre del canal.');
+                    return false;
+                }else{
+                    console.log('El n Nombre actaul del canal es: ', channel.name);
+                    console.log('El nuevo nombre del canal es: ', newName);
+                }
+            }
             await channel.setName(newName);
-            console.log(`Nombre del canal cambiado a: ${newName}`);
+            console.log(channel.name);
+            if (verify && channel.name === newName){
+                console.log('El nombre del canal fue cambiado correctamente.');
+            }else if (verify){
+                console.log('No Cambio Error');
+                throw new Error('No se pudo cambiar el nombre del canal.');
+            }   
+                
             return true;
         } else {
             console.log('El canal no es válido o no es un canal de voz.');
