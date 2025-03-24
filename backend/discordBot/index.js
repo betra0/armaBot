@@ -168,7 +168,8 @@ client.on('ready', async () => {
 });
 
 client.on(Events.MessageCreate, async message => {
-    console.log('Message received:', message.guildId, message.content, message.channelId);
+    // en el consol log recuperar el nombre del canal y nombre de servidor 
+    console.log('Message received:', message.guild.name, message.channel.name,  message.content );
     if (!message.guild) {
           return message.reply('Este comando solo puede ser usado en un servidor de Discord.');
     }
