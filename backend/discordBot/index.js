@@ -76,6 +76,49 @@ client.on('ready', async () => {
     console.log(`Logged in as ${client.user.tag}`);
 
     //test
+    async function runInterval() {
+        try {
+            /* await findAndEditChannelName(
+                client,
+                '1349159517971021929',
+                `🎮 𝗦𝗲𝗿𝘃𝗲𝗿-1 | ${Math.floor(Math.random() * 100)} 👥`,
+                true
+            ); */
+            /* await retryFunctionSetChannelName({
+                channelID: '1349159517971021929',
+                redisClient: redis,
+                attempt: 1,
+                maxAttempts: 50,
+                seudoTitle: 'Servidor-xd',
+                client: client,
+                adress:'104.234.7.8:2363'
+
+            }); */
+        } catch (e) {
+            console.log('En testeInterval', e);
+        }
+        setTimeout(runInterval, 20000); // Espera a que termine antes de iniciar el siguiente
+    }
+    
+    /* runInterval(); */
+
+
+    // NO usado de momento
+    /* await findAndEditChannelName(
+        client, 
+        '1350949826363392042', 
+        `🎮 Bot OFF 👥`,
+        true
+    );
+    setTimeout(async ()=>{
+        
+    await findAndEditChannelName(
+        client, 
+        '1350949899470114846', 
+        `🎮 Bot OFF 👥`,
+        true
+    );
+    }, 1500) */
     
 
     //guardar en redis el mensaje de subcripcion para testear 
