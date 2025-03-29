@@ -145,18 +145,20 @@ client.on('ready', async () => {
                             {content: "", embeds: allEbeds}
                     )
                 }else if (type==='playerCountInTitle' && valuesSub.channelID ){
-                    let text = infoAdress.status == false ? '| CLOSED' : `| ${infoAdress.playerCount}/${infoAdress.maxPlayers}`
-                    console.log(
-                        'cambiando el del nombre de canal de voz', 
-                        `${valuesSub.seudoTitle} ${infoAdress.playerCount}/${infoAdress.maxPlayers}`,
-                    )
-                    await findAndEditChannelName(
-                        client, 
-                        valuesSub.channelID, 
-                        `🎮 ${valuesSub.seudoTitle} ${text} 👥`
-                    );
+
+                    await retryFunctionSetChannelName({
+                        channelID: valuesSub.channelID,
+                        redisClient: redis,
+                        attempt: 1,
+                        maxAttempts: 50,
+                        seudoTitle: valuesSub.seudoTitle,
+                        client: client,
+                        adress: ip,
+                        infoAdress: infoAdress
+                    });
                     
-                    console.log('devria haber cambiado el nombre del canal de voz')
+                        
+                    
                     // aqui se edita el titulo del canal de voz 
 
                 }
@@ -166,7 +168,63 @@ client.on('ready', async () => {
     })
 
 });
+async function retryFunctionSetChannelName(
+    {  
+        attempt = 1,
+        channelID, 
+        maxAttempts = 50,
+        infoAdress=null, 
+        adress,
+        redisClient,
+        seudoTitle='xd',
+        client
+     }) {
+    const retryTime = 1000 * 60 * 10; // minutos
 
+    // Solo la primera vez verifica Redis
+    if (attempt === 1) {
+        const isRetrying = await redisClient.get(`retrying:${channelID}`);
+        if (isRetrying) {
+            console.log(`🔄 Ya hay un reintento en curso para el canal ${channelID}, evitando duplicados.`);
+            return;
+        }
+    }
+    if (!infoAdress){
+        infoAdress = await getInfoAdressForRedis({ adress: adress, redis: redisClient });
+    }
+    if (!infoAdress){
+        console.log('No hay info de la ip en redis')
+        return
+    }
+    let text = infoAdress.status == false ? '| CLOSED' : `| ${infoAdress.playerCount}/${infoAdress.maxPlayers}`
+
+    
+    try {
+        console.log(`Intento ${attempt} para canal ${channelID}`);
+        await findAndEditChannelName(
+            client, 
+            channelID, 
+            `🎮 ${seudoTitle} ${text} 👥`,
+            true
+        );
+        await redisClient.del(`retrying:${channelID}`);
+        console.log(`Operación exitosa en canal ${channelID}`);
+        return; // Salir si la operación fue exitosa
+
+    } catch (err) {
+        console.log(`Error: ${err.message}, reintentando... (${attempt}/${maxAttempts})`);
+
+        if (err.message === 'TimeoutFunction' && attempt < maxAttempts) {
+                // Aunque sea el segundo intento establece el reintento en Redis para reiniciar el ttl 
+            await redisClient.set(`retrying:${channelID}`, "true", "EX", retryTime/1000 + 5); //  con tiempo de expiración en segundos
+            await new Promise(res => setTimeout(res, retryTime)); // Esperar antes de reintentar
+            return retryFunctionSetChannelName({ attempt: attempt + 1, channelID, maxAttempts, redisClient, adress, seudoTitle, client });
+        } else {
+            console.log(`Se alcanzó el número máximo de intentos para el canal ${channelID} u otro error, abortando.`);
+            await redisClient.del(`retrying:${channelID}`); // Liberar canal en fallo definitivo
+        }
+    }
+}
 client.on(Events.MessageCreate, async message => {
     // en el consol log recuperar el nombre del canal y nombre de servidor 
     console.log('Message received:', message.guild.name, message.channel.name,  message.content );

@@ -33,11 +33,16 @@ const findAndEditMessageText = async (client ,idChannel, idMessage, data='') => 
 }
 
 
-
+async function setChannelNameWithTimeout(channel, newName, timeout = 15000) {
+    return Promise.race([
+        channel.setName(newName),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('TimeoutFunction')), timeout))
+    ]);
+}
 
 
 const findAndEditChannelName = async (client, idChannel, newName, verify=false) => {
-    console.log('Buscando canal...');
+    console.log('inicioFuncion');
     try {
         const channel = await client.channels.fetch(idChannel);
 
@@ -49,24 +54,37 @@ const findAndEditChannelName = async (client, idChannel, newName, verify=false) 
                     return false;
                 }else{
                     console.log('El n Nombre actaul del canal es: ', channel.name);
-                    console.log('El nuevo nombre del canal es: ', newName);
+                    console.log('El nuevo nombre  a cambiar es del canal es: ', newName);
                 }
             }
-            await channel.setName(newName);
-            console.log(channel.name);
-            if (verify && channel.name === newName){
+            console.log('en el await de set name...');
+            try{
+                await setChannelNameWithTimeout(channel, newName);
+
+            }
+            catch (err){
+                console.error('Error en el setNameChannel:', err);
+                throw err;
+            }
+            console.log('after await.');
+
+            let reschanel = await client.channels.fetch(idChannel);
+            let resName = reschanel.name;
+            console.log('El nuevo nombre del canal es : ', resName);
+            if (verify && resName === newName){
                 console.log('El nombre del canal fue cambiado correctamente.');
             }else if (verify){
                 console.log('No Cambio Error');
                 throw new Error('No se pudo cambiar el nombre del canal.');
             }   
-                
+            console.log('finFuncion');
             return true;
         } else {
             console.log('El canal no es válido o no es un canal de voz.');
             throw new Error('El canal no es válido o no es un canal de voz.');
         }
     } catch (err) {
+        console.log('Error en el catch');
         console.error('Error al cambiar el nombre del canal:', err);
 
         if (err.code === 50001) {
@@ -75,7 +93,10 @@ const findAndEditChannelName = async (client, idChannel, newName, verify=false) 
             console.log('El bot no tiene permisos para editar este canal.');
         } else if (err.code === 10003) {
             console.log('El canal no existe.');
-        } else {
+        } else if (err.message === 'TimeoutFunction') {
+            console.log('El tiempo de espera para cambiar el nombre del canal ha expirado.');
+        }
+        else {
             console.log('Error desconocido:', err);
         }
         throw err;
