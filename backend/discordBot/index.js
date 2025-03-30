@@ -270,7 +270,7 @@ async function retryFunctionSetChannelName(
 }
 client.on(Events.MessageCreate, async message => {
     // en el consol log recuperar el nombre del canal y nombre de servidor 
-    console.log('Message received:', message.guild.name, message.channel.name,  message.content );
+    console.log('Message received:',  'ServerName',message.guild.name, 'ChannelName', message.channel.name, message.author.username, ':', message.content );
     if (!message.guild) {
           return message.reply('Este comando solo puede ser usado en un servidor de Discord.');
     }
