@@ -54,22 +54,22 @@ module.exports = {
         const guild = message.guild
         console.log('este es el args: ', args)
 
-        const oldAdressIndex = args.indexOf('--old-adress');
-        const newAdressIndex = args.indexOf('--new-adress');
+        const oldAdressIndex = args.indexOf('--old-address');
         // si c.idexOf no encuentra el valor, devuelve -1
         // el if revisa si el valor fue encontrado y si no se encuentra al final del array
         if (oldAdressIndex !== -1 && oldAdressIndex < args.length - 1) {
-            adress = args[oldAdressIndex + 1];
+            oldAdress = args[oldAdressIndex + 1];
             args.splice(oldAdressIndex, 2);
         }else{
-            return message.reply('Debes ingresar una dirección de servidor ejemplo --old-adress xxx.xxx.xx.xx:xxxx')
+            return message.reply('Debes ingresar una dirección de servidor ejemplo --old-address xxx.xxx.xx.xx:xxxx')
         }
         
+        const newAdressIndex = args.indexOf('--new-address');        
         if (newAdressIndex !== -1 && newAdressIndex < args.length - 1) {
             newAdress = args[newAdressIndex + 1];
             args.splice(newAdressIndex, 2);
         }else{
-            return message.reply('Debes ingresar una nueva dirección de servidor ejemplo --new-adress xxx.xxx.xx.xx:xxxx')
+            return message.reply('Debes ingresar una nueva dirección de servidor ejemplo --new-address xxx.xxx.xx.xx:xxxx')
 
         }                    
 
@@ -77,7 +77,7 @@ module.exports = {
         
         const content= `** Cambiando la dirección del servidor de: ${oldAdress} a: ${newAdress}**` 
         try {    
-            const mensaje = await channelName.send({content: content});
+            const mensaje = await channel.send({content: content});
             changeAdressInRedis({
                 redis: redis,
                 oldAdress: oldAdress,
