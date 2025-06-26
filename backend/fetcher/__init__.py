@@ -104,7 +104,7 @@ def getIpForRedis():
         
 def insertIpInRedis():
     logging.info("Insertando las ips para consultar de redis.")
-    r.sadd("ipsTofech", "104.234.7.8:2363")
+    r.sadd("ipsTofech", "104.234.7.37:2343")
     r.sadd("ipsTofech", "104.234.7.106:2353")
     #r .sadd("ipsTofech", "192.168.0.27:2363")
     # otra insecion para test 

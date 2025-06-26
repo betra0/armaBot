@@ -126,7 +126,7 @@ client.on('ready', async () => {
         {
             type:'playerCountInTitle', 
             gildID:'1122648884477427713', 
-            adress:'104.234.7.8:2363', 
+            adress:'104.234.7.37:2343', 
             channelID:'1350949826363392042', 
             messageID:'', 
             seudoTitle:'𝗦𝗲𝗿𝘃𝗲𝗿-1', redis:redis
