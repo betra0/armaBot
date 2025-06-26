@@ -54,18 +54,24 @@ module.exports = {
         const guild = message.guild
         console.log('este es el args: ', args)
 
-        const adressIndex = args.indexOf('--old-adress');
+        const oldAdressIndex = args.indexOf('--old-adress');
+        const newAdressIndex = args.indexOf('--new-adress');
         // si c.idexOf no encuentra el valor, devuelve -1
         // el if revisa si el valor fue encontrado y si no se encuentra al final del array
-        if (adressIndex !== -1 && adressIndex < args.length - 1) {
-            adress = args[adressIndex + 1];
-            args.splice(adressIndex, 2);
+        if (oldAdressIndex !== -1 && oldAdressIndex < args.length - 1) {
+            adress = args[oldAdressIndex + 1];
+            args.splice(oldAdressIndex, 2);
         }else{
-            return message.reply('Debes ingresar una dirección de servidor ejemplo --adress xxx.xxx.xx.xx:xxxx')
+            return message.reply('Debes ingresar una dirección de servidor ejemplo --old-adress xxx.xxx.xx.xx:xxxx')
         }
         
+        if (newAdressIndex !== -1 && newAdressIndex < args.length - 1) {
+            newAdress = args[newAdressIndex + 1];
+            args.splice(newAdressIndex, 2);
+        }else{
+            return message.reply('Debes ingresar una nueva dirección de servidor ejemplo --new-adress xxx.xxx.xx.xx:xxxx')
 
-
+        }                    
 
 
         
