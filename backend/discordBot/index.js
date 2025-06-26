@@ -289,6 +289,11 @@ client.on(Events.MessageCreate, async message => {
             console.log(arg)
             handlerReqireCommand('createCommands', arg, message, redis)
           }
+          else if (arg === 'edit'){
+            const arg = message.content.slice(5).split(' ')[1]
+            console.log(arg)
+            handlerReqireCommand('editCommands', arg, message, redis)
+          }
           else{
             console.log(arg)
             handlerReqireCommand('adminCommands', arg, message, redis)
