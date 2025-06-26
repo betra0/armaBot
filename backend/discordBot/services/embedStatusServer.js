@@ -58,7 +58,7 @@ const GenerateEmbedStatusServer = ({infoAdress=null, seudoTitle='No definido'}) 
     
         for (let i = 0; i < Math.min(infoAdress.players.length, maxFields); i++) {
             fieldsPlayers.push({
-                name: `${infoAdress.players[i].name}`,
+                name: `${safeValue(infoAdress.players[i].name)}`,
                 value: `${Number(infoAdress.players[i].score) * 100} Puntos`,
                 inline: true
             });
