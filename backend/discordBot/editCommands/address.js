@@ -45,6 +45,7 @@ function parseArgs(input) {
 
 module.exports = {
     description:' Cambia el Adress del servidor completamente, se usa cuando la ip de un servidor cambia ',
+    usage: 'changeAdress --old-address xxx.xxx.xx.xx:xxxx --new-address xxx.xxx.xx.xx:xxxx',
     run: async (message, redis) => {
         const args = parseArgs(message.content);
 
