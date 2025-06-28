@@ -122,6 +122,8 @@ client.on('ready', async () => {
     
 
     //guardar en redis el mensaje de subcripcion para testear 
+    
+    /*
     saveRedisNewMessageSubcription(
         {
             type:'playerCountInTitle', 
@@ -142,7 +144,7 @@ client.on('ready', async () => {
             seudoTitle:'𝗦𝗲𝗿𝘃𝗲𝗿 2', 
             redis:redis
         }) 
-
+    */
     
     // suscribire a los canales de comunicacion con fetcher en redis 
     subscriber.subscribe('adressChangeInfo', (err, count) => {
