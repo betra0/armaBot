@@ -113,8 +113,11 @@ def insertIpInRedis():
     r.hset("adress:sub:status", "104.234.7.8:2363", json.dumps(dictsubEample)) """
 def isSubadressInRedis(address):
     res = r.hget("adress:sub:status", address)  # Obtiene el valor de Redis
+    res2 = r.hget("adress:sub:playerCountInTitle", address)  # Obtiene el valor de Redis
 
-    if res is None:  # Si no existe, retorna None
+    if res is None and res2 is None:  # Si no existe, retorna None
+        logging.info(f"la direccion {address} no esta en un canal de subcripcion")
+        # Si no existe, retorna None
         return None
     else:
         return True
