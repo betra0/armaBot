@@ -45,7 +45,8 @@ function parseArgs(input) {
 
 
 module.exports = {
-    description:'crear un mensaje de status del servidor en un canal de texto específico',
+    description:'crear un titulodinamico typo status del servidor en un canal de texto específico',
+    usage: 'voiceChannelTitle --channel "Nombre del canal" --address xxx.xxx.xx.xx:xxxx --title "Nombre del servidor"',
     run: async (message, redis) => {
         const args = parseArgs(message.content);
 
@@ -62,21 +63,23 @@ module.exports = {
         if (channelIndex !== -1 && channelIndex < args.length - 1) {
             voiceChannelArg = args[channelIndex + 1];
             args.splice(channelIndex, 2);
+        }else{
+            return message.reply('Debes ingresar un canal de voz ejemplo --channel "Nombre del canal" o --channel #canal');
         }
 
-        const adressIndex = args.indexOf('--adress');
+        const adressIndex = args.indexOf('--address');
         // si c.idexOf no encuentra el valor, devuelve -1
         // el if revisa si el valor fue encontrado y si no se encuentra al final del array
         if (adressIndex !== -1 && adressIndex < args.length - 1) {
             adress = args[adressIndex + 1];
             args.splice(adressIndex, 2);
         }else{
-            return message.reply('Debes ingresar una dirección de servidor ejemplo --adress xxx.xxx.xx.xx:xxxx')
+            return message.reply('Debes ingresar una dirección de servidor ejemplo --address xxx.xxx.xx.xx:xxxx')
         }
         
         // buscar seudotitle
         //seudiTitleIndex
-        seudoTitleIndex = args.indexOf('--title');
+        const seudoTitleIndex = args.indexOf('--title');
         if (seudoTitleIndex !== -1 && seudoTitleIndex < args.length - 1) {
             seudoTitle = args[seudoTitleIndex + 1];
             args.splice(seudoTitleIndex, 2);
@@ -86,30 +89,61 @@ module.exports = {
 
 
         // Verificar si el canal existe y en que formato se mando y encontrar a idchanel
-        if (voiceChannelArg.startsWith('<#') && voiceChannelArg.endsWith('>')) {
-            voiceChannelId = voiceChannelArg.slice(2, -1);
-        } else{
-            //  buscar el canal por su nombre
-            const voiceChannel = message.guild.channels.cache.find(channel => channel.name === voiceChannelArg);
-            voiceChannelId = voiceChannel ? voiceChannel.id : null;
+
+        console.log('este es el voiceChannelArg:',voiceChannelArg)
+        const cleanArg = voiceChannelArg
+         .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\u2060\uFEFF]/g, '') // caracteres de control + invisibles
+         .trim();
+
+
+        console.log('este es el cleanArg:',cleanArg)
+
+        if (cleanArg.startsWith('<#') && cleanArg.endsWith('>')) {
+            // Si el canal está en formato <#id>, extraer el ID
+            voiceChannelId = cleanArg.slice(2, -1);
         }
-        if (!voiceChannelId) {
+        else{
+            console.log('no es un formato de id de canal, revisando si es un id de canal')
+            // primero revisar si son puros numeros
+            if (/^\d+$/.test(cleanArg)) {
+                // si es un numero, es un id de canal
+                console.log('es un numero', cleanArg)
+                // si se verifica que es un id existente el nuemro
+                voiceChannelId = message.guild.channels.cache.get(cleanArg)?.id || null;
+            }else{
+                console.log('no es un numero, revisando si es un nombre de canal')
+                // si no es un numero, es un nombre de canal
+                //  buscar el canal por su nombre
+                const voiceChannel = message.guild.channels.cache.find(channel => channel.name === cleanArg);
+                voiceChannelId = voiceChannel ? voiceChannel.id : null;
+            }
+        }
+        console.log('este es el voiceChannelId: ', voiceChannelId)
+
+        if (voiceChannelId === null) {
             return message.reply(`No se encontró un canal de audio con el nombre o id ${voiceChannelArg}.`);
         }
 
 
         const content= `** preparando voice channel title...** para: ${adress} ** ...`
         try {    
-            const mensaje = await channelName.send({content: content});
+            const mensaje = await message.reply(content);
+            console.log('parametros para redis: ', { 
+                gildID:guildID, 
+                adress:adress, 
+                channelID:voiceChannelId,  
+                seudoTitle: seudoTitle
+            });
+            console.log('pase esta parte ',)
         
             await saveRedisNewMessageSubcription({
-                type: 'playerCountInTitle',
-                guildID,
-                channelId: voiceChannelId,
-                adress,
-                seudoTitle,
-                messageID: '',
-                redis
+                type:'playerCountInTitle', 
+                gildID:guildID, 
+                adress:adress, 
+                channelID:voiceChannelId, 
+                messageID:'', 
+                seudoTitle: seudoTitle, 
+                redis:redis
             });
             await insertAdressTofetcher({adress, redis})
             mensaje.edit({content: `** voice channel title funcionando, los cambios se podrian ver reflejados en un maximo de 10 minutos.**`});
@@ -118,9 +152,6 @@ module.exports = {
 
 
 
-            if(!isNewChannel){
-                message.delete()  
-            }
 
         } catch (error) {
             console.log(error)
