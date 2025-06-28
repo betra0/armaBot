@@ -1,6 +1,9 @@
 const saveRedisNewMessageSubcription = async ({redis, type='status', gildID, adress, channelID, messageID, seudoTitle=''})=>{
 // hay Type status y voicetitle
 // primero verificas si ya hay un objeto 
+    if (!adress  || !channelID) {
+        throw new Error('Missing required parameters: adress or channelID');
+    }
     let ipSubcriptionObject = await redis.hget(`adress:sub:${type}`, adress)
     ipSubcriptionObject= ipSubcriptionObject ? JSON.parse(ipSubcriptionObject) : {}
 
