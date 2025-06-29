@@ -229,9 +229,9 @@ def debugPublishRedis():
     
 if  __name__ == "__main__":
     # primero leer  lo que ya hay en el redis para debug
-    r2=searchAdressInRedis("104.234.7.8:2363")
-    logging.info(f"\n la info en redis es : {r2}\n")
-    insertIpInRedis()
+    #r2=searchAdressInRedis("104.234.7.8:2363")
+    #logging.info(f"\n la info en redis es : {r2}\n")
+    #insertIpInRedis()
     time.sleep(8)
     refreshIpsinfo()
     debugPublishRedis()
