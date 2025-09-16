@@ -163,7 +163,7 @@ client.on('ready', async () => {
     });
     
     subscriber.on('message', async (channel, message) => {
-        console.log(`Mensaje recibido en el canal ${channel}: ${message}`);
+        console.log(`Mensaje recibido en el canal de redis ${channel}: ${message}`);
         if (channel === 'adressChangeInfo' || channel === 'adressChangePlayerCount'){ 
             const ip = message;
             let type = channel === 'adressChangeInfo' ? 'status' : 'playerCountInTitle'
@@ -180,9 +180,10 @@ client.on('ready', async () => {
             for (const valuesSub of listValuesSub){
                 console.log('status info; ', infoAdress.status)
                 if ( type==='status' && valuesSub.channelID && valuesSub.messageID){
-
+                    
+                    // crear embed con la info del server
                     const allEbeds = GenerateEmbedStatusServer({infoAdress, seudoTitle:valuesSub.seudoTitle})
-
+                    // se envia ls info, editando el mensaje con la nueva info 
                     await findAndEditMessageText(
                             client, 
                             valuesSub.channelID, 
