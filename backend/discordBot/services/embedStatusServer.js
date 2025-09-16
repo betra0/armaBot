@@ -43,7 +43,7 @@ const GenerateEmbedStatusServer = ({infoAdress=null, seudoTitle='No definido'}) 
             
         
     )
-    .setImage('https://cdn.discordapp.com/attachments/1349294304455163938/1349294670806646824/36636746158cb38795e0eb6cdde17624d7183ed4.png?ex=67d29416&is=67d14296&hm=fc441b5728558c3286e726cd3c2acb336a2a65ba4b00f131673213df7bf924fb&')
+    .setImage('https://cdn.discordapp.com/attachments/1417387761501208656/1417387791846998086/image.png?ex=68ca4cbf&is=68c8fb3f&hm=e7fa9ab0901c3deb30f3b4cc88f1d20ea13ee7217268c6bbabef1bb7e054c546&')
     .setTimestamp();
     allEbeds.push(embed)
     // si el status es false se agrega un embed de error
