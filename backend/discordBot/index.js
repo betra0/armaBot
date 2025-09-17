@@ -267,20 +267,23 @@ async function titleTextArmaServer({ adress, redisClient, seudoTitle }){
     let text = infoAdress.status == false ? '| CLOSED' : `| ${infoAdress.playerCount}/${infoAdress.maxPlayers}`
     return `🎮 ${seudoTitle} ${text} 👥`
 }
-
-async function changeAmountMembers({member}){
-    const guild = member.guild;
+async function titleMembersCount({ guild }){
     const memberCount = guild.memberCount;
-    console.log(`Miembros totales: ${memberCount}`);
+    return `Miembros: ${memberCount}`
+}
+async function changeAmountMembers({member}){
+
     const data = await getSimpleRedisJson({ redis: redis, type: 'voiceMembersCount', UID: `${guild.id}` })
     if (data && data.channelID){
         try{
-            await findAndEditChannelName(
-                client, 
-                data.channelID, 
-                `Miembros: ${memberCount}`,
-                true
-            );
+            await retryEditChannelTitle({
+                channelID: data.channelID,
+                redisClient: redis,
+                attempt: 1,
+                maxAttempts: 3,
+                titletextFunc: async ()=> await titleMembersCount({ guild: member.guild }),
+                client: client
+            });
         }catch(e){
             console.log('error al cambiar el nombre del canal de miembros', e)
         }
