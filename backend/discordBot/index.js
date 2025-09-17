@@ -7,7 +7,7 @@ const generateRegister = require('./other/generateRegister');
 const Redis = require('ioredis');
 require('dotenv').config({ path: '../../.env' });
 const { saveRedisNewMessageSubcription } = require('./services/insertInRedis');
-const { getListRedisIpSubcription, getInfoAdressForRedis } = require('./services/getFromRedis');
+const { getListRedisIpSubcription, getInfoAdressForRedis, getSimpleRedisJson } = require('./services/getFromRedis');
 const { GenerateEmbedStatusServer } = require('./services/embedStatusServer');
 
 console.log('este es el Redis host y port \n ', process.env.REDISHOST, process.env.REDISPORT)
@@ -271,6 +271,32 @@ async function retryFunctionSetChannelName(
         }
     }
 }
+async function changeAmountMembers({member}){
+    const guild = member.guild;
+    const memberCount = guild.memberCount;
+    console.log(`Miembros totales: ${memberCount}`);
+    const data = await getSimpleRedisJson({ redis: redis, type: 'voiceMembersCount', UID: `${guild.id}` })
+    if (data && data.channelID){
+        try{
+            await findAndEditChannelName(
+                client, 
+                data.channelID, 
+                `Miembros: ${memberCount}`,
+                true
+            );
+        }catch(e){
+            console.log('error al cambiar el nombre del canal de miembros', e)
+        }
+        
+    }
+
+}
+client.on(Events.GuildMemberAdd, async member => {
+    changeAmountMembers({member})
+});
+client.on(Events.GuildMemberRemove, async member => {
+    changeAmountMembers({member})  
+});
 client.on(Events.MessageCreate, async message => {
     // en el consol log recuperar el nombre del canal y nombre de servidor 
     console.log('Message received:',  'ServerName',message.guild.name, 'ChannelName', message.channel.name, message.author.username, ':', message.content );
