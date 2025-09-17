@@ -28,8 +28,21 @@ const getInfoAdressForRedis = async ({ adress=null, redis})=>{
     return infoAdress
 
 }
+const getSimpleRedisJson = async ({ redis, type = 'defectData', UID }) => {
+  if (!redis) {
+    throw new Error('Missing required parameter: redis client');
+  }
+
+  if (!UID) {
+    throw new Error('Missing required parameter: UID');
+  }
+
+  const data = await redis.hget(`databot:${type}`, UID);
+  return data ? JSON.parse(data) : null;
+};
 
 module.exports = {
     getListRedisIpSubcription,
-    getInfoAdressForRedis
+    getInfoAdressForRedis,
+    getSimpleRedisJson
 }

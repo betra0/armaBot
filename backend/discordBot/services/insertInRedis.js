@@ -26,7 +26,23 @@ const insertAdressTofetcher = async ({adress, redis})=>{
     await redis.sadd(`ipsTofech`, adress)
 }
 
+
+
+const saveSimpleRedisJson = async ({ redis, type = 'defectData', UID, json }) => {
+  if (!redis) {
+    throw new Error('Missing required parameter: redis client');
+  }
+
+  if (!UID || !json) {
+    throw new Error('Missing required parameters: UID or json');
+  }
+
+  await redis.hset(`databot:${type}`, UID, JSON.stringify(json));
+};
+
+
 module.exports = {
     saveRedisNewMessageSubcription,
-    insertAdressTofetcher
+    insertAdressTofetcher,
+    saveSimpleRedisJson,
 }
