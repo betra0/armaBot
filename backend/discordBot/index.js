@@ -222,10 +222,10 @@ async function retryFunctionSetChannelName(
         infoAdress=null, 
         adress,
         redisClient,
-        seudoTitle='xd',
+        seudoTitle='none',
         client
      }) {
-    const retryTime = 1000 * 60 * 10; // minutos
+    const retryTime = 1000 * 60 * 11; // minutos
 
     // Solo la primera vez verifica Redis
     if (attempt === 1) {
