@@ -273,7 +273,7 @@ async function titleMembersCount({ guild }){
     return `Miembros: ${memberCount}`
 }
 async function changeAmountMembers({member}){
-
+    const guild = member.guild;
     const data = await getSimpleRedisJson({ redis: redis, type: 'voiceMembersCount', UID: `${guild.id}` })
     if (data && data.channelID){
         try{
