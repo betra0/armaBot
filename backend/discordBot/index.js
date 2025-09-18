@@ -269,6 +269,7 @@ async function titleTextArmaServer({ adress, redisClient, seudoTitle }){
 }
 async function titleMembersCount({ guild }){
     const memberCount = guild.memberCount;
+    console.log(`Miembros totales obtenidos: ${memberCount}`);
     return `Miembros: ${memberCount}`
 }
 async function changeAmountMembers({member}){
@@ -292,9 +293,11 @@ async function changeAmountMembers({member}){
 
 }
 client.on(Events.GuildMemberAdd, async member => {
+    console.log('se a unido un nuevo miembro al servidor')
     changeAmountMembers({member})
 });
 client.on(Events.GuildMemberRemove, async member => {
+    console.log('un miembro a salido del servidor')
     changeAmountMembers({member})  
 });
 client.on(Events.MessageCreate, async message => {
