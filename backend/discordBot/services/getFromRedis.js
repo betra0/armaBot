@@ -20,6 +20,12 @@ const getInfoAdressForRedis = async ({ adress=null, redis})=>{
     }
     let infoAdress = await redis.hget(`adressInfo`, adress)
     infoAdress = infoAdress ? JSON.parse(infoAdress) : null
+    let imgsAdress = await redis.hget(`adressImgs`, adress)
+    imgsAdress = imgsAdress ? JSON.parse(imgsAdress) : null
+    // meter img en la info
+    if (infoAdress && imgsAdress){
+        infoAdress.imgs = imgsAdress
+    }
     // formatear info del adress
     if (infoAdress){
         //console.log("esta es la info pre formated; ", infoAdress)

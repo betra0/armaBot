@@ -1,6 +1,5 @@
 const { saveRedisNewMessageSubcription, insertAdressTofetcher, saveSimpleRedisJson } = require('../services/insertInRedis');
 
-const { GenerateEmbedStatusServer } = require('../services/embedStatusServer');
 const { getInfoAdressForRedis } = require('../services/getFromRedis');
 const { parseArgs } = require('../utils/parseArgs');
 const { ChannelType, PermissionsBitField } = require('discord.js');

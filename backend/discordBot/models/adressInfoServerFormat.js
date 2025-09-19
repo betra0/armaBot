@@ -24,6 +24,7 @@ const infoServerFormatted = ({ infoAdress }) => {
         players: infoAdress.players,
         updatedInfo: infoAdress.updatedInfo,
         status: infoAdress.status,
+        imgs: infoAdress.imgs ? infoAdress.imgs : null
     };
 
     return dictInfoFormatted;

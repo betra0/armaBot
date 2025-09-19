@@ -1,7 +1,5 @@
 const { saveRedisNewMessageSubcription, insertAdressTofetcher } = require('../services/insertInRedis');
-const { generateMessageEmbed } = require('../services/embedMessageGenerator');
-const { GenerateEmbedStatusServer } = require('../services/embedStatusServer');
-const { getInfoAdressForRedis } = require('../services/getFromRedis');
+
 
 
 function parseArgs(input) {

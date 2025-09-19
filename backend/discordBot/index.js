@@ -182,7 +182,7 @@ client.on('ready', async () => {
                 if ( type==='status' && valuesSub.channelID && valuesSub.messageID){
                     
                     // crear embed con la info del server
-                    const allEbeds = GenerateEmbedStatusServer({infoAdress, seudoTitle:valuesSub.seudoTitle})
+                    const allEbeds = await GenerateEmbedStatusServer({infoAdress, seudoTitle:valuesSub.seudoTitle})
                     // se envia ls info, editando el mensaje con la nueva info 
                     await findAndEditMessageText(
                             client, 
