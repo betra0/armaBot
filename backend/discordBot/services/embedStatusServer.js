@@ -21,6 +21,7 @@ const safeValue = (value, defaultValue = 'Desconocido') => {
 };
 async function checkImageExists(url) {
     //verificar que es una url str 
+    console.log('iniciando checkImageExists con url: ', url)
     if (typeof url !== 'string' || url.trim() === '') {
         return false
     }
@@ -30,6 +31,7 @@ async function checkImageExists(url) {
     const type = res.headers.get("content-type")
     return type && type.startsWith("image/")
   } catch (err) {
+    console.error('Error checking image URL:', err)
     return false
   }
 }
@@ -48,6 +50,7 @@ const  GenerateEmbedStatusServer = async ({infoAdress=null, seudoTitle='No defin
         let intent =0
         let indexRotos = []
         while (intent < 15){
+            console.log('iniciando intento de img numero: ', intent)
             const randomIndex = Math.floor(Math.random() * infoAdress.imgs.length);
             const randomImg = infoAdress.imgs[randomIndex];
             if (indexRotos.includes(randomIndex)){
@@ -57,6 +60,7 @@ const  GenerateEmbedStatusServer = async ({infoAdress=null, seudoTitle='No defin
             // comprobar que la img existe
             if (randomImg && await checkImageExists(randomImg)){
                 imgToUse = randomImg
+                console.log('img a usar encontrada: ', imgToUse)
                 break
             }
             indexRotos.push(randomIndex)
@@ -64,10 +68,12 @@ const  GenerateEmbedStatusServer = async ({infoAdress=null, seudoTitle='No defin
             // si no existe intentar con otra img
             if (indexRotos.length >= infoAdress.imgs.length){
                 // si ya se han probado todas las imgs salir del bucle
+                console.log('todas las imgs probadas, saliendo del bucle','intentos: ', intent, 'imgs rotas: ', indexRotos)
                 break
             }
             intent +=1
         }
+        console.log('Fuera del bucle, intentos usados: ', intent,)
     }
     console.log('antes del primer embed')
     const embed = new EmbedBuilder()
