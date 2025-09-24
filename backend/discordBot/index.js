@@ -301,15 +301,14 @@ client.on(Events.GuildMemberRemove, async member => {
     changeAmountMembers({member})  
 });
 client.on(Events.MessageCreate, async message => {
-    // en el consol log recuperar el nombre del canal y nombre de servidor 
-    console.log('Message received:',  'ServerName',message.guild.name, 'ChannelName', message.channel.name, message.author.username, ':', message.content );
+    if (message.author.bot) return
     if (!message.guild) {
-          return message.reply('Este comando solo puede ser usado en un servidor de Discord.');
+        console.log('Message received:',  'DM', message.author.username, ':', message.content );
+        return message.reply('este bot no funciona por dm, por favor usa los comandos en un servidor.');
     }
+    console.log('Message received:',  'ServerName',message.guild.name, 'ChannelName', message.channel.name, message.author.username, ':', message.content );
+
     if (message.content.startsWith('sudo')) {
-
-
-          if (message.author.bot) return
           if (message.member && !message.member?.permissions.has(PermissionsBitField.Flags.Administrator) && message.author.id !== '708054004923629639') {
               return message.reply('¡Solo los administradores pueden ejecutar este comando!');
           }
