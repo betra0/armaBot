@@ -314,14 +314,14 @@ client.on(Events.MessageCreate, async message => {
           }
         
            // Handler comannd
-          const arg = message.content.slice(5).split(' ')[0]
+          const arg = message.content.slice(3).split(' ')[0]
           if(arg === 'create'){
-            const arg = message.content.slice(5).split(' ')[1]
+            const arg = message.content.slice(3).split(' ')[1]
             console.log(arg)
             handlerReqireCommand('createCommands', arg, message, redis)
           }
           else if (arg === 'edit'){
-            const arg = message.content.slice(5).split(' ')[1]
+            const arg = message.content.slice(3).split(' ')[1]
             console.log(arg)
             handlerReqireCommand('editCommands', arg, message, redis)
           }
@@ -333,8 +333,7 @@ client.on(Events.MessageCreate, async message => {
 
 
     }
-    if (message.content.startsWith('%')){
-      if (message.author.bot) return
+    else if (message.content.startsWith('%')){
       const arg = message.content.slice(1).split(' ')[0]
       console.log(arg)
       handlerReqireCommand('commands', arg, message, redis)
