@@ -1,111 +1,90 @@
-const { ActionRowBuilder, ButtonBuilder, time, } = require('discord.js');
-// Crear un botón
-const button = new ButtonBuilder()
-    .setCustomId('abort_btn') // ID único para el botón
-    .setLabel('Cancealar')
-    .setStyle(1);
+
+const { parseArgs } = require('../utils/parseArgs');
 
 
 module.exports = {
-    description:'',
+    description: `Comando para borrar mensajes puntuales, de forma limpia(sin replys del bot).
+    Puede usarse para borrar una cantidad específica (por defecto 1 maximo 5) 
+    y a partir de un mensaje en específico (opción avanzada). 
+    Ejemplo: %s clear 2 --id idDelMensaje. 
+    No sirve para borrar mensajes en masa.`,
+    usage: '%s clear [amount] --id [messageID]',
+
     run: async (message) => {
+        let amount = 1
+        let targetMessageID = null
+        let targetMessage = message
+        
+
+        
         try {
-            const args = message.content.split(' ').slice(1).join(' ');
-            const forceDelete = args.includes('--forced');
-            let abortar = false
-
-            let reply
-            if (forceDelete){
-                const row = new ActionRowBuilder()
-                    .addComponents(button);
-                reply = await message.reply(
-                    {
-                        content:'Realizando Borrado Forzado, Porfabor espere ...',
-                        components:[row]
-                    })
-                const filter = (interacion)=> interacion.user.id === message.author.id && interacion.message.id == reply.id
-                const collector = reply.createMessageComponentCollector({ time: 600000 }); // 10 minutos
-                collector.on('collect', async (interaction) => {
-                    if (interaction.customId === 'abort_btn' && interaction.user.id === message.author.id) {
-                        // El usuario ha interactuado con el botón 'abort_btn'
-                        console.log('El usuario ha cancelado la acción');
-                        reply.edit({components:[], content:'Cancelando el Clear'})
-                        abortar = true
-                    }
-                });
-                collector.on('end', (collected, reason) => {
-                    console.log(`El recolector de interacciones ha terminado (${reason})`);
-                });
-            }
+            const args = parseArgs(message.content).slice(2);
             const channel = message.channel;
-            let messagesDeleted = 0;
-            let manualDeletions = 0;
-            do {
-                console.log('se esta ejecutando el DOO')
-                const messages = await channel.messages.fetch({ limit: 100 });
-                if (messages.size === 0) break; // Si no hay más mensajes, salir del bucle
+            // encontrar si hay un argumento --id
+            for (let i = 0; i < args.length; i++) {
+                if (args[i] === '--id' && i + 1 < args.length) {
+                    targetMessageID = args[i + 1];
+                    i++; // Saltar el siguiente argumento ya que es el ID
 
-                const deletions = [];
-                const manualDeletionsList = []
-                messages.forEach(msg => {
-                    console.log('abortar es:', abortar)
-                    if (reply && reply.id === msg.id) return
-                    else if(abortar) return
-                    else if (Date.now() - msg.createdTimestamp > 14 * 24 * 60 * 60 * 1000) {
-                        console.log('mensaje antiguo y forced delate', forceDelete)
-                        if (forceDelete){
-                            manualDeletionsList.push(new Promise((resolve, reject) => {
-                                setTimeout(() => {
-                                    console.log('estoy ejecutando el timeout', abortar)
-                                    if (!abortar){
-                                        msg.delete()
-                                        .then(() => {
-                                            manualDeletions++
-                                            messagesDeleted++
-                                            resolve();
-                                        })
-                                        .catch(error => {
-                                            console.error("Error al eliminar mensaje:", error);
-                                            resolve(); // Continuar con la ejecución después del error
-                                        });
-                                    }else{ 
-                                        console.log('se esta cancelando esta promesa de dlate') 
-                                        resolve()
-                                    }
-                                }, 100);
-                            }));
-                        }
-                        
-                    } else {
-                        console.log('apend messege news')
-                        deletions.push(msg);
-                    }
-                });
-                console.log('abor es aaaahkjsad:', abortar)
-                if(abortar) break
-                console.log('termine de hacer el for de 100msg')
-                await Promise.all(manualDeletionsList);
-                if (deletions.length > 0) {
-                    await channel.bulkDelete(deletions).then(deletedMessages => {
-                        messagesDeleted += deletedMessages.size;
-                    }).catch(error => {
-                        console.error("Error al eliminar mensajes en bloque:", error);
-                    });
-                }else if(deletions.length === 0 && !forceDelete) return
-                console.log('este es el tamaño de la lista', deletions.length)
-                messagesDeleted += messages.size - manualDeletions;
+                    // borrar __id y el id del array de argumentos
+                    args.splice(i - 1, 2);
+                } else if (!isNaN(args[i])) {
+                    amount = parseInt(args[i], 10);
+                }
+            } 
 
-                // Esperar 1 segundo después de cada ciclo del bucle
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            } while (!abortar);
+            if (amount < 1) amount = 1;
+            if (amount > 5) amount = 5;
 
-            console.log(`Se eliminaron un total de ${messagesDeleted} mensajes.`);
-            console.log(`Se realizaron ${manualDeletions} eliminaciones manuales.`);
-            reply.delete()
+
+            if (targetMessageID) {
+                targetMessage= await message.channel.messages.fetch(targetMessageID);
+                if (!targetMessage){
+                return message.reply(`No se encontró el mensaje con ID ${targetMessageID}`);
+                }   
+            }
+            
+            let messagesBefore = [];
+            if (targetMessage.id === message.id ) {
+                amount +=2
+            }
+
+            if (amount > 1) {
+                
+                const preMessagesBefore = await message.channel.messages.fetch({ before: targetMessage.id, limit: amount -1 });
+                console.log('preMessagesBefore es:', preMessagesBefore)
+                messagesBefore = Array.from(preMessagesBefore.values())
+            } 
+            const messagesToDelete = [targetMessage, ...messagesBefore].reverse();
+
+            // no borrar el mensaje de comando si esta en la lista
+            if (targetMessage.id === message.id) {
+                messagesToDelete.shift()
+                // borrar el ultimo 
+                messagesToDelete.pop()
+
+            }
+
+            for (const msg of messagesToDelete) {
+                console.log('borrando mensaje:', msg.id,' msg: ', msg.content);
+                await msg.delete();
+            }
+            console.log(`Se han borrado ${messagesToDelete.length} mensajes.`);
+
+
+        
+            //eliminar el mensaje de comando
+            try {
+                await message.delete();
+            } catch (error) {
+                console.error("No se pudo eliminar el mensaje de comando:", error);
+            }
+
+
         } catch (error) {
             console.error("Error inesperado:", error);
         }
 
-    console.log('e terminado ')
+    console.log('comaando finalizado ')
     }
 };
