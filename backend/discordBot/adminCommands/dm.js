@@ -4,7 +4,7 @@ const { parseArgs } = require('../utils/parseArgs');
 
 module.exports = {
     description:'para poder mandar msg como si fues el bot por dm, -b para borrar el mensaje original',
-    usage: ' comando (id  nombreUnico) "mensaje"',
+    usage: 'activador comando (id  nombreUnico) "mensaje"',
     run: async (message, redis) => {
         const args = parseArgs(message.content);
         console.log('este es el args, dentro9 de comando: ', args)

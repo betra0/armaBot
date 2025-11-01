@@ -1,3 +1,4 @@
+// Utility function to parse command arguments, handling quoted strings
 function parseArgs(input) {
     const args = [];
     let currentArg = '';

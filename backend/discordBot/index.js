@@ -78,22 +78,7 @@ client.on('ready', async () => {
     //test
     async function runInterval() {
         try {
-            /* await findAndEditChannelName(
-                client,
-                '1349159517971021929',
-                `🎮 𝗦𝗲𝗿𝘃𝗲𝗿-1 | ${Math.floor(Math.random() * 100)} 👥`,
-                true
-            ); */
-            /* await retryFunctionSetChannelName({
-                channelID: '1349159517971021929',
-                redisClient: redis,
-                attempt: 1,
-                maxAttempts: 50,
-                seudoTitle: 'Servidor-xd',
-                client: client,
-                adress:'104.234.7.8:2363'
-
-            }); */
+            console.log('example ...');
         } catch (e) {
             console.log('En testeInterval', e);
         }
@@ -121,30 +106,7 @@ client.on('ready', async () => {
     }, 1500) */
     
 
-    //guardar en redis el mensaje de subcripcion para testear 
-    
-    /*
-    saveRedisNewMessageSubcription(
-        {
-            type:'playerCountInTitle', 
-            gildID:'1122648884477427713', 
-            adress:'104.234.7.37:2343', 
-            channelID:'1350949826363392042', 
-            messageID:'', 
-            seudoTitle:'𝗦𝗲𝗿𝘃𝗲𝗿-1', redis:redis
-        })
 
-    saveRedisNewMessageSubcription(
-        {
-            type:'playerCountInTitle', 
-            gildID:'1122648884477427713', 
-            adress:'104.234.7.106:2353', 
-            channelID:'1350949899470114846', 
-            messageID:'', 
-            seudoTitle:'𝗦𝗲𝗿𝘃𝗲𝗿 2', 
-            redis:redis
-        }) 
-    */
     
     // suscribire a los canales de comunicacion con fetcher en redis 
     subscriber.subscribe('adressChangeInfo', (err, count) => {
@@ -300,6 +262,8 @@ client.on(Events.GuildMemberRemove, async member => {
     console.log('un miembro a salido del servidor')
     changeAmountMembers({member})  
 });
+
+// cuando se manda un mensaje por un servidor de discord    
 client.on(Events.MessageCreate, async message => {
     if (message.author.bot) return
     if (!message.guild) {
