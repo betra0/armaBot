@@ -4,6 +4,7 @@ module.exports = {
     description:'para poder mandar msg como si fues el bot',
     run: async (message) => {
         const args = message.content.split(' ');
+        args.shift(); // eliminar el primer elemento que es el activador del comando
         let channelName = message.channel; // Por defecto, se utilizará el canal actual
         let isNewChannel = false
         let messageContent = '';
