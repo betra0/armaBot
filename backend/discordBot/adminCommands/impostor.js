@@ -41,9 +41,9 @@ module.exports = {
         if (isNewChannel && !channelName) {
             return message.reply(`No se encontró un canal con el nombre ${channelName}.`);
         }
-        if (!channelName.permissionsFor(message.author).has('SEND_MESSAGES')) {
-            return message.reply('No tienes permiso para enviar mensajes en ese canal.');
-        }
+        //if (!channelName.permissionsFor(message.author).has('SEND_MESSAGES')) {
+        //    return message.reply('No tienes permiso para enviar mensajes en ese canal.');
+        //}
         if(!isNewChannel){
             message.delete()
         }
