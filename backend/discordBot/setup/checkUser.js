@@ -3,6 +3,9 @@ const { generateMessageEmbed } = require('../services/embedMessageGenerator');
 const { GenerateEmbedStatusServer } = require('../services/embedStatusServer');
 const { getInfoAdressForRedis, getSimpleRedisJson } = require('../services/getFromRedis');
 const { parseArgs } = require('../utils/parseArgs');
+const { ChannelType, PermissionsBitField } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+
 
 
 module.exports = {
@@ -56,24 +59,25 @@ module.exports = {
             },
             {
                 title:'Paso 6: Imagen del Mensaje de Verificacion', 
-                descripcion:'Actualmente no hay imagen configurada para el mensaje de verificacion.\n Desea añadir una imagen? Responda con %r si para añadir o %r "URL de la Imagen" para especificar una URL.'
+                descripcion:'Actualmente no hay imagen configurada para el mensaje de verificacion.\n Desea añadir una imagen? Responda con %r no o para añadir %r "URL de la Imagen" para especificar una URL.'
             },
             {
                 title:'Paso 7: Rol a Asignar al Verificar', 
-                descripcion:'Actualmente no hay rol configurado para asignar al verificar.\n Mencione el rol a asignar o responda %r ninguno si no desea asignar ningun rol.'
+                descripcion:'Mencione el rol a asignar con %r @rol'
             },
 
         ]
         const guild = message.guild;
          const configDef = {
             title: 'Verificacion de Usuario',
-            welcomeMessage: `Bienvenido a {${guild.name}}`,
+            welcomeMessage: `Bienvenido a ${guild.name}`,
             description: 'Para poder ver el resto de canales haga clic en "Verificar"',
             importantChannels: [],
             imageUrl: null,
             roleToAssign: null,
             channelId: null,
-            messageId: null
+            messageId: null,
+            btnId: null,
         };
         const cantidadPasos = 7
         
@@ -125,11 +129,23 @@ module.exports = {
             }
         }else if (pasoActual === 6){
             // paso 6: imagen del mensaje
-            if (respuestaUsuario && respuestaUsuario.toLowerCase() !=='si'){
+            if (respuestaUsuario && respuestaUsuario.toLowerCase() !=='no' && respuestaUsuario.trim() !==''){
                 actualconfig.imageUrl = respuestaUsuario
             }
         }else if (pasoActual === 7){
-            // POR AHORA NO IMPLEMENTADO 
+            // paso 7: rol a asignar
+            if (respuestaUsuario && respuestaUsuario.trim() !=='' ){
+                // extraer rol mencionado
+                const rolMencionado = message.mentions.roles.first();
+                if (rolMencionado){
+                    actualconfig.roleToAssign = rolMencionado.id
+                }
+            }else{
+                // no se menciono rol, repetir paso
+                pasoActual--;
+            }
+                
+            
         }
         pasoActual++;
 
@@ -139,14 +155,19 @@ module.exports = {
         }
         
 
-        //guardar Configuracion intermedia en redis
-        saveACtualConfig(guild.id, actualconfig);
+
         // si paso 8 crear canal y mensaje
         if (pasoActual == cantidadPasos+1 && !cancelado){
-            // crear canal y mensaje de verificacion
+            
             embeds.push(generateMessageEmbed({title:'Configuracion Completa', descripcion:'Se ha completado la configuracion de verificacion de usuario.\n Se ha creado el canal y mensaje de verificacion segun las especificaciones proporcionadas.'}))
-            // por ahora no implementado
+            let body= `${actualconfig.welcomeMessage}\n\n${actualconfig.description}\n\n`
+            const embedVe=[]
+            embedVe.push(generateMessageEmbed({title:actualconfig.title, descripcion:body}))
+            actualconfig = await createVerification(guild, actualconfig, embedVe);
+
         }
+        saveACtualConfig(guild.id, actualconfig);
+
 
 
         // final guardar paso
@@ -167,6 +188,57 @@ module.exports = {
         
         
         // FUNCIONES AUXILIARES
+        
+        async function createVerification(guild, config, embeds){
+            config.btnId = 'verificacion_btn_' + guild.id + '_' + Date.now()
+            // crear canal de texto
+            const permisos=[
+                {
+                    id: guild.roles.everyone.id,      
+                    allow: [PermissionsBitField.Flags.ViewChannel],  // que lo vean
+                    deny: [PermissionsBitField.Flags.SendMessages],       // que no puedan enviar mensajes 
+                 
+                }
+            ]
+            if (config.roleToAssign){
+                permisos.push(
+                    {
+                        id: config.roleToAssign,      
+                        deny: [PermissionsBitField.Flags.ViewChannel],  // que no lo vean
+                    }
+                )
+            }
+
+            const channel = await guild.channels.create({
+              name: 'Verificacion',
+              type: ChannelType.GuildText,
+              permissionOverwrites: permisos,
+                
+            }); 
+            console.log('canal creado')
+            
+
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId(config.btnId)
+                    .setLabel('Verificar')
+                    .setStyle(ButtonStyle.Primary)
+            );
+
+            const message = await channel.send({
+                content: '',
+                embeds: embeds,
+                components: [row]
+            });
+
+
+            config.channelId = channel.id;
+            config.messageId = message.id;
+            return config;
+            
+        
+        }
+
         async function getActualConfig(guildId, config){
             const data = await getSimpleRedisJson({ redis, type: 'checkUser:config', UID: guildId });
             if (data && Object.keys(data).length > 0 ){
