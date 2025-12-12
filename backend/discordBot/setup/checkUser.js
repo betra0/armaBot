@@ -85,6 +85,9 @@ module.exports = {
         let actualconfig = configDef
         actualconfig = await getActualConfig(guild.id, configDef) // funcion para obtener config actual si existe
         let respuestaUsuario = args.slice(3).join(' '); // unir todo lo que venga despues del tercer argumento
+        if (args[0] === '%r'){
+            respuestaUsuario = args.slice(1).join(' ');
+        }
         let cancelado = false;
         const embeds=[]
         // cuerpo de la funcion

@@ -301,6 +301,18 @@ client.on(Events.MessageCreate, async message => {
           
 
 
+    }else if(message.content.startsWith('%r')){
+        const resComand = await redis.get(`response:${message.channel.id}`);
+        if (!resComand || resComand ==''){
+            return
+        }
+      const arg = `${resComand}`
+      // agregarle  comando despues del iniciador %r a arg
+      
+
+      console.log(arg)
+      handlerReqireCommand('setup', arg, message, redis)
+
     }
     else if (message.content.startsWith('%')){
       const arg = message.content.slice(1).split(' ')[0]
