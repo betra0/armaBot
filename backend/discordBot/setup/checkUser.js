@@ -1,7 +1,7 @@
-const { saveRedisNewMessageSubcription, insertAdressTofetcher } = require('../services/insertInRedis');
+const { saveRedisNewMessageSubcription, insertAdressTofetcher, saveSimpleRedisJson } = require('../services/insertInRedis');
 const { generateMessageEmbed } = require('../services/embedMessageGenerator');
 const { GenerateEmbedStatusServer } = require('../services/embedStatusServer');
-const { getInfoAdressForRedis } = require('../services/getFromRedis');
+const { getInfoAdressForRedis, getSimpleRedisJson } = require('../services/getFromRedis');
 const { parseArgs } = require('../utils/parseArgs');
 
 
@@ -77,9 +77,9 @@ module.exports = {
         };
         const cantidadPasos = 7
         
-        let pasoActual = getContext(); // por defecto 0
-        let = actualconfig = configDef
-        actualconfig = getActualConfig(guild.id, configDef) // funcion para obtener config actual si existe
+        let pasoActual = await getContext(); // por defecto 0
+        let actualconfig = configDef
+        actualconfig = await getActualConfig(guild.id, configDef) // funcion para obtener config actual si existe
         let respuestaUsuario = args.slice(3).join(' '); // unir todo lo que venga despues del tercer argumento
         let cancelado = false;
         const embeds=[]
@@ -142,15 +142,18 @@ module.exports = {
         //guardar Configuracion intermedia en redis
         saveACtualConfig(guild.id, actualconfig);
         // si paso 8 crear canal y mensaje
-        if (pasoActual = cantidadPasos+1 && !cancelado){
+        if (pasoActual == cantidadPasos+1 && !cancelado){
             // crear canal y mensaje de verificacion
             embeds.push(generateMessageEmbed({title:'Configuracion Completa', descripcion:'Se ha completado la configuracion de verificacion de usuario.\n Se ha creado el canal y mensaje de verificacion segun las especificaciones proporcionadas.'}))
             // por ahora no implementado
         }
 
+
         // final guardar paso
-        if (!cancelado){
+        if (!cancelado && pasoActual <= cantidadPasos){
          saveContext(pasoActual);
+        }else{
+            delContext();
         }
     
 
@@ -164,22 +167,38 @@ module.exports = {
         
         
         // FUNCIONES AUXILIARES
-        function getActualConfig(guildId, configDef){
-            // por ahora retornar configDef
-            return configDef
+        async function getActualConfig(guildId, config){
+            const data = await getSimpleRedisJson({ redis, type: 'checkUser:config', UID: guildId });
+            if (data && Object.keys(data).length > 0 ){
+                return data
+            }
+            return config
         }
 
     
-        function getContext(){
+        async function getContext(){
             let paso= 0
             // pór ahora vacio
+            const step = await redis.get(`stepCheckUser:${message.channel.id}`);
+            if (step && !isNaN(parseInt(step, 10))) {
+                paso = parseInt(step, 10);
+            }
+            console.log('paso actual sacado de redis:', paso) 
             return paso
         }
-        function saveContext(paso){
+        async function saveContext(paso){
             // por ahora vacio
+            await redis.set(`stepCheckUser:${message.channel.id}`, paso.toString(), 'EX', 400); // expira 
+            await redis.set(`response:${message.channel.id}`, 'checkUser', 'EX', 400); // expira en 400 segundos
+
         }
+        async function delContext(){
+            await redis.del(`stepCheckUser:${message.channel.id}`);
+            await redis.del(`response:${message.channel.id}`);
+        }   
         function saveACtualConfig(guildId, config){
-            // por ahora vacio
+
+            saveSimpleRedisJson({ redis, type: 'checkUser:config', UID: guildId, json: config })
         }
         // si no hay contexto iniciar proceso
         
