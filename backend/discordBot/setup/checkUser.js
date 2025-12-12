@@ -1,0 +1,202 @@
+const { saveRedisNewMessageSubcription, insertAdressTofetcher } = require('../services/insertInRedis');
+const { generateMessageEmbed } = require('../services/embedMessageGenerator');
+const { GenerateEmbedStatusServer } = require('../services/embedStatusServer');
+const { getInfoAdressForRedis } = require('../services/getFromRedis');
+const { parseArgs } = require('../utils/parseArgs');
+
+
+module.exports = {
+    description:'comando iteractivo para Configurar un canal y mensaje de verificación de usuario',
+    usage:'Iniciador setup checkUser   o para las respuestas: %r respuestadelusario',
+    // entrada de la funcion de cada iteracion: iniciador setup checkUser respuestadelusario
+    // si respuestadelusario es vacio, se inicia el proceso
+    // si no leer memoria redis para saber contexto actual
+
+    //ideacion; 
+    // 1 preguntaa(solo si el mensajechexuser si existe) detectamos que ya existe una verificacion de usuario desea eliminar? 
+    //            si/no(quit)  (si dise que no se cancela todo) 
+    // 2 Titulo del mensaje de verificacion Default: "Verificacion de Usuario" desea mantenerlo? si/"nuevo titulo"
+    // 3 Mensaje de bienvenida Default: "bienvenido a {NombredeComunidad}" desea mantenerlo? si/"mensaje nuevo"
+    // 4 Descripcion del mensaje de verificacion Default: "Para poder ver el resto de canales raciona aqui con " desea mantenerlo? si/"nueva descripcion"
+    // 5 enlaces a canales importantes post verificacon, "mecione canales destacados post verificacion separados por comas" o "ninguno"
+    //posible
+    // 6 añadir foto al mensaje de verificacion? si/"url de la imagen"
+    // 7 Rol a asignar al verificar "mencione el rol a asignar o id
+
+    // 
+    run: async (message, redis) => {
+        console.log('inicio de funcion checkUser')
+        const args = parseArgs(message.content); // lista [ '%s', 'setup', 'checkUser', 'hola', 'que', 'onda' ]
+        console.log(args)
+        
+        const respuestasArray = [
+            {
+                title:'Setup CheckUser Iniciado', 
+                descripcion:'Iniciando proceso de configuracion de verificacion de usuario.\n Responda las siguientes preguntas para configurar el canal.\n Para responder use el prefijo %r seguido de su respuesta.\n Ejemplo: %r "Nuevo Titulo del Mensaje", %r si o %r no, segun corresponda.'
+            },
+            {
+                title:'Paso 1: Canal de Verificacion ya existente', 
+                descripcion:'ya existe un canal de verificacion de usuario configurado en este servidor.\n Desea eliminar la configuracion actual y crear una nueva? Responda con %r si para eliminar o %r no para cancelar el proceso.'
+            },
+            {
+                title:'Paso 2: Titulo del Mensaje de Verificacion', 
+                descripcion:'El titulo actual del mensaje de verificacion es: "Verificacion de Usuario"\n Desea mantenerlo? Responda con %r si para mantenerlo o %r "Nuevo Titulo" para cambiarlo.'
+            },
+            {
+                title:'Paso 3: Mensaje de Bienvenida', 
+                descripcion:'El mensaje de bienvenida actual es: "Bienvenido a {NombredeComunidad}"\n Desea mantenerlo? Responda con %r si para mantenerlo o %r "Nuevo Mensaje" para cambiarlo.'
+            },
+            {
+                title:'Paso 4: Descripcion del Mensaje de Verificacion', 
+                descripcion:'La descripcion actual del mensaje de verificacion es: "Para poder ver el resto de canales raciona aqui con"\n Desea mantenerla? Responda con %r si para mantenerla o %r "Nueva Descripcion" para cambiarla.'
+            },
+            {
+                title:'Paso 5: Canales Importantes Post Verificacion', 
+                descripcion:'Actualmente no hay canales importantes configurados post verificacion.\n Mencione los canales destacados post verificacion separados por comas o responda %r ninguno si no desea añadir ninguno.'
+            },
+            {
+                title:'Paso 6: Imagen del Mensaje de Verificacion', 
+                descripcion:'Actualmente no hay imagen configurada para el mensaje de verificacion.\n Desea añadir una imagen? Responda con %r si para añadir o %r "URL de la Imagen" para especificar una URL.'
+            },
+            {
+                title:'Paso 7: Rol a Asignar al Verificar', 
+                descripcion:'Actualmente no hay rol configurado para asignar al verificar.\n Mencione el rol a asignar o responda %r ninguno si no desea asignar ningun rol.'
+            },
+
+        ]
+        const guild = message.guild;
+         const configDef = {
+            title: 'Verificacion de Usuario',
+            welcomeMessage: `Bienvenido a {${guild.name}}`,
+            description: 'Para poder ver el resto de canales haga clic en "Verificar"',
+            importantChannels: [],
+            imageUrl: null,
+            roleToAssign: null,
+            channelId: null,
+            messageId: null
+        };
+        const cantidadPasos = 7
+        
+        let pasoActual = getContext(); // por defecto 0
+        let = actualconfig = configDef
+        actualconfig = getActualConfig(guild.id, configDef) // funcion para obtener config actual si existe
+        let respuestaUsuario = args.slice(3).join(' '); // unir todo lo que venga despues del tercer argumento
+        let cancelado = false;
+        const embeds=[]
+        // cuerpo de la funcion
+        if (pasoActual === 0){
+            embeds.push(generateMessageEmbed(respuestasArray[0]))
+            if (!actualconfig || !actualconfig.channelId){
+                // no hay canal configurado, saltar al paso 2
+                pasoActual = 1
+            } 
+        }else if (pasoActual === 1){
+            // paso 1: existe canal, desea eliminar?
+            if (respuestaUsuario && respuestaUsuario.toLowerCase() === 'si'){
+                // eliminar config actual
+                actualconfig = configDef
+
+            }else{
+                // cancelar proceso
+                embeds.push(generateMessageEmbed({title:'Proceso Cancelado', descripcion:'No se realizaron cambios en la configuracion de verificacion de usuario.'}))
+                cancelado = true;
+            }     
+        }else if (pasoActual === 2){
+            // paso 2: titulo del mensaje
+            if (respuestaUsuario && respuestaUsuario.toLowerCase() !=='si'){
+                actualconfig.title = respuestaUsuario
+            }
+        }else if (pasoActual === 3){
+            // paso 3: mensaje de bienvenida
+            if (respuestaUsuario && respuestaUsuario.toLowerCase() !=='si'){
+                actualconfig.welcomeMessage = respuestaUsuario
+            }
+        }else if (pasoActual === 4){
+            // paso 4: descripcion del mensaje
+            if (respuestaUsuario && respuestaUsuario.toLowerCase() !=='si'){
+                actualconfig.description = respuestaUsuario
+            }
+        }else if (pasoActual === 5){
+            // paso 5: canales importantes
+            if (respuestaUsuario && respuestaUsuario.toLowerCase() !=='no' && respuestaUsuario.toLowerCase() !=='ninguno' && respuestaUsuario.trim() !==''){
+                // parsear canales separados por comas
+                const canales = respuestaUsuario.split(',').map(c => c.trim());
+                actualconfig.importantChannels = []; // por ahora vacio
+            }
+        }else if (pasoActual === 6){
+            // paso 6: imagen del mensaje
+            if (respuestaUsuario && respuestaUsuario.toLowerCase() !=='si'){
+                actualconfig.imageUrl = respuestaUsuario
+            }
+        }else if (pasoActual === 7){
+            // POR AHORA NO IMPLEMENTADO 
+        }
+        pasoActual++;
+
+        // MENSAJE PARA pasos 1 a 7 
+        if (pasoActual <= cantidadPasos && !cancelado){
+            embeds.push(generateMessageEmbed(respuestasArray[pasoActual]))
+        }
+        
+
+        //guardar Configuracion intermedia en redis
+        saveACtualConfig(guild.id, actualconfig);
+        // si paso 8 crear canal y mensaje
+        if (pasoActual = cantidadPasos+1 && !cancelado){
+            // crear canal y mensaje de verificacion
+            embeds.push(generateMessageEmbed({title:'Configuracion Completa', descripcion:'Se ha completado la configuracion de verificacion de usuario.\n Se ha creado el canal y mensaje de verificacion segun las especificaciones proporcionadas.'}))
+            // por ahora no implementado
+        }
+
+        // final guardar paso
+        if (!cancelado){
+         saveContext(pasoActual);
+        }
+    
+
+        message.reply({embeds:embeds})
+
+        
+        
+        
+        
+        
+        
+        
+        // FUNCIONES AUXILIARES
+        function getActualConfig(guildId, configDef){
+            // por ahora retornar configDef
+            return configDef
+        }
+
+    
+        function getContext(){
+            let paso= 0
+            // pór ahora vacio
+            return paso
+        }
+        function saveContext(paso){
+            // por ahora vacio
+        }
+        function saveACtualConfig(guildId, config){
+            // por ahora vacio
+        }
+        // si no hay contexto iniciar proceso
+        
+        
+        //  message.reply({embeds:[embed1, embed2]})
+        
+
+
+
+
+        //let channelName = message.channel; // Por defecto, se utilizará el canal actual
+        //let isNewChannel = false
+        //let channelId = message.channel.id;
+
+        
+        
+
+    }
+}
+
