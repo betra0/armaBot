@@ -1,4 +1,4 @@
-const {Client, Events, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, Embed, InteractionFlags, PermissionsBitField  } = require('discord.js');
+const {Client, Events, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, Embed, InteractionFlags, PermissionsBitField, InteractionReplyOptions, MessageFlags  } = require('discord.js');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
@@ -324,7 +324,37 @@ client.on(Events.MessageCreate, async message => {
 
 });
 
+client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isButton()) return;
 
+    const data = await getSimpleRedisJson({
+        redis: redis,
+        type: 'checkUser:config',
+        UID: `${interaction.guild.id}`
+    });
+
+    if (data && data.btnId && interaction.customId === data.btnId) {
+    console.log('Botón de verificación presionado por', interaction.user.tag);
+    console.log('idrol:', data.roleToAssign);
+    console.log('data:', data);
+
+        const role = interaction.guild.roles.cache.get(data.roleToAssign);
+
+        if (role) {
+            await interaction.member.roles.add(role);
+
+            await interaction.reply({
+                content: '¡Verificación exitosa! Ahora tienes acceso al servidor.',
+                flags: MessageFlags.Ephemeral
+            });
+        } else {
+            await interaction.reply({
+                content: 'Error: El rol de verificación no existe.',
+                flags: MessageFlags.Ephemeral
+            });
+        }
+    }
+});
 
 /* client.on('interactionCreate', async (interaction) => {
     if (!interaction.isButton()) return;  // Asegúrate de que la interacción sea un botón

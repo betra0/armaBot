@@ -225,6 +225,7 @@ module.exports = {
                 new ButtonBuilder()
                     .setCustomId(config.btnId)
                     .setLabel('Verificar')
+                    .setEmoji('✅') 
                     .setStyle(ButtonStyle.Primary)
             );
 
