@@ -9,6 +9,7 @@ require('dotenv').config({ path: '../../.env' });
 const { saveRedisNewMessageSubcription } = require('./services/insertInRedis');
 const { getListRedisIpSubcription, getInfoAdressForRedis, getSimpleRedisJson } = require('./services/getFromRedis');
 const { GenerateEmbedStatusServer } = require('./services/embedStatusServer');
+const { generateMessageEmbed } = require('./services/embedMessageGenerator');
 
 console.log('este es el Redis host y port \n ', process.env.REDISHOST, process.env.REDISPORT)
 
@@ -342,9 +343,22 @@ client.on('interactionCreate', async (interaction) => {
 
         if (role) {
             await interaction.member.roles.add(role);
-
+            const embeds = [];
+            let destacados='';
+            if (data.importantChannels && data.importantChannels.length > 0) {
+                destacados =` y a canales recurrentes como: ` + data.importantChannels.map(channelId => `<#${channelId}>`).join(' ');
+                
+            }
+            embeds.push(generateMessageEmbed(
+                    {
+                        title:'¡Verificación exitosa!',
+                        descripcion:` Ahora tienes acceso al servidor${destacados}.` ,
+                        color:'#00ff00',
+                    }
+                ));
             await interaction.reply({
-                content: '¡Verificación exitosa! Ahora tienes acceso al servidor.',
+                content: '',
+                embeds: embeds,
                 flags: MessageFlags.Ephemeral
             });
         } else {

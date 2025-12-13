@@ -31,7 +31,22 @@ module.exports = {
         console.log('inicio de funcion checkUser')
         const args = parseArgs(message.content); // lista [ '%s', 'setup', 'checkUser', 'hola', 'que', 'onda' ]
         console.log(args)
+
+
         
+        const guild = message.guild;
+         const configDef = {
+            title: `Bienvenido a ${guild.name} 👋`,
+            welcomeMessage: `Este es el servidor oficial de la comunidad.
+Antes de continuar, tómate un momento para leer la información inicial. Nos ayuda a mantener el orden y una buena convivencia entre todos.`,
+            description: 'Para acceder al resto de los canales, primero acepta las reglas del servidor (botón “Completar” o emoji 🔓). Luego, presiona el botón “Verificar”.',
+            importantChannels: [],
+            imageUrl: null,
+            roleToAssign: null,
+            channelId: null,
+            messageId: null,
+            btnId: null,
+        };
         const respuestasArray = [
             {
                 title:'Setup CheckUser Iniciado', 
@@ -43,19 +58,19 @@ module.exports = {
             },
             {
                 title:'Paso 2: Titulo del Mensaje de Verificacion', 
-                descripcion:'El titulo actual del mensaje de verificacion es: "Verificacion de Usuario"\n Desea mantenerlo? Responda con %r si para mantenerlo o %r "Nuevo Titulo" para cambiarlo.'
+                descripcion:`El titulo actual del mensaje de verificacion es: "${configDef.title}"\n Desea mantenerlo? Responda con %r si para mantenerlo o %r "Nuevo Titulo" para cambiarlo.`
             },
             {
                 title:'Paso 3: Mensaje de Bienvenida', 
-                descripcion:'El mensaje de bienvenida actual es: "Bienvenido a {NombredeComunidad}"\n Desea mantenerlo? Responda con %r si para mantenerlo o %r "Nuevo Mensaje" para cambiarlo.'
+                descripcion:`El mensaje de bienvenida actual es: "${configDef.welcomeMessage}"\n Desea mantenerlo? Responda con %r si para mantenerlo o %r "Nuevo Mensaje" para cambiarlo.`
             },
             {
                 title:'Paso 4: Descripcion del Mensaje de Verificacion', 
-                descripcion:'La descripcion actual del mensaje de verificacion es: "Para poder ver el resto de canales raciona aqui con"\n Desea mantenerla? Responda con %r si para mantenerla o %r "Nueva Descripcion" para cambiarla.'
+                descripcion:`La descripcion actual del mensaje de verificacion es: "${configDef.description}"\n Desea mantenerla? Responda con %r si para mantenerla o %r "Nueva Descripcion" para cambiarla.`
             },
             {
                 title:'Paso 5: Canales Importantes Post Verificacion', 
-                descripcion:'Actualmente no hay canales importantes configurados post verificacion.\n Mencione los canales destacados post verificacion separados por comas o responda %r ninguno si no desea añadir ninguno.'
+                descripcion:'Actualmente no hay canales importantes configurados post verificacion.\n Mencione los canales destacados post verificacion separados por un espacio %r #canal1 #canal2 o responda con %r ninguno si no desea añadir canales.' 
             },
             {
                 title:'Paso 6: Imagen del Mensaje de Verificacion', 
@@ -63,22 +78,10 @@ module.exports = {
             },
             {
                 title:'Paso 7: Rol a Asignar al Verificar', 
-                descripcion:'Mencione el rol a asignar con %r @rol'
+                descripcion:'Mencione el rol a asignar con %r @rol, (obligatorio).'
             },
-
         ]
-        const guild = message.guild;
-         const configDef = {
-            title: 'Verificacion de Usuario',
-            welcomeMessage: `Bienvenido a ${guild.name}`,
-            description: 'Para poder ver el resto de canales haga clic en "Verificar"',
-            importantChannels: [],
-            imageUrl: null,
-            roleToAssign: null,
-            channelId: null,
-            messageId: null,
-            btnId: null,
-        };
+        
         const cantidadPasos = 7
         
         let pasoActual = await getContext(); // por defecto 0
@@ -127,8 +130,15 @@ module.exports = {
             // paso 5: canales importantes
             if (respuestaUsuario && respuestaUsuario.toLowerCase() !=='no' && respuestaUsuario.toLowerCase() !=='ninguno' && respuestaUsuario.trim() !==''){
                 // parsear canales separados por comas
-                const canales = respuestaUsuario.split(',').map(c => c.trim());
-                actualconfig.importantChannels = []; // por ahora vacio
+                const canalesList = parseArgs(respuestaUsuario); // lista de canales mencionados
+                const canalesIds = []
+                canalesList.forEach( canalStr => {
+                    const canalMencionado = message.mentions.channels.find(c => `<#${c.id}>` === canalStr);
+                    if (canalMencionado){
+                        canalesIds.push(canalMencionado.id)
+                    }
+                });
+                actualconfig.importantChannels = canalesIds; 
             }
         }else if (pasoActual === 6){
             // paso 6: imagen del mensaje
@@ -162,10 +172,31 @@ module.exports = {
         // si paso 8 crear canal y mensaje
         if (pasoActual == cantidadPasos+1 && !cancelado){
             
-            embeds.push(generateMessageEmbed({title:'Configuracion Completa', descripcion:'Se ha completado la configuracion de verificacion de usuario.\n Se ha creado el canal y mensaje de verificacion segun las especificaciones proporcionadas.'}))
-            let body= `${actualconfig.welcomeMessage}\n\n${actualconfig.description}\n\n`
+            embeds.push(generateMessageEmbed(
+                {
+                    title:'Configuracion Completa', 
+                    descripcion:'Se ha completado la configuracion de verificacion de usuario.\n Se ha creado el canal y mensaje de verificacion segun las especificaciones proporcionadas.',
+                    color:'#00ff00',
+                }
+            ))
+            
             const embedVe=[]
-            embedVe.push(generateMessageEmbed({title:actualconfig.title, descripcion:body}))
+            embedVe.push(generateMessageEmbed(
+                {
+                    title:configDef.title, 
+                    descripcion:actualconfig.welcomeMessage,
+                    imgUrl:actualconfig.imageUrl,
+                    color:'#0099ff',
+                }
+            ))
+            embedVe.push(generateMessageEmbed(
+                {
+                    title:`Verificacion de Usuario`,
+                    descripcion:actualconfig.description,
+                    color:'#0099ff',
+                    
+                }
+            ))
             actualconfig = await createVerification(guild, actualconfig, embedVe);
 
         }
@@ -234,6 +265,7 @@ module.exports = {
                 embeds: embeds,
                 components: [row]
             });
+            await message.react('🔓');
 
 
             config.channelId = channel.id;
