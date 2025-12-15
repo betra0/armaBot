@@ -18,15 +18,83 @@ function sleep(ms) {
 }
 let redis 
 let subscriber
+const traslatecommands = {
+    'createCommands': '%s create',
+    'editCommands': '%s edit',
+    'setup': '%s setup',
+    'adminCommands': '%s',
+    'commands': '%'
+}
 
 
 const client = new Client({
     intents:process.env.INTENTSDS
 });
 const token = process.env.BOTDSTOKEN
+// funcion que itera las carpetas de comandos [capeta, carpeta2, ...] y busca los comandos, 
+async function scanFoldersCommands(carpetasarray){
+    const embeds = []
+    embeds.push(generateMessageEmbed(
+        {
+            title:'Lista de Comandos Disponibles',
+            descripcion:`Aquí tienes una lista de los comandos disponibles, con activador comando --help puedes ver más detalles de cada uno.`,
+            color:'#0099ff',
+        }
+    ));
+    for (const carpeta of carpetasarray){
+        const fields = []
+        const files=fs.readdirSync(`./${carpeta}`);
+        for (const file of files){
+            const { title, usage, description } = callHelpCommand(carpeta, file);
 
-const handlerReqireCommand = (carpeta, arg, message, redis)=>{
+            const safeUsage = usage?.trim() || 'No definido';
+            const safeDescription = description?.trim() || 'Sin descripción';
+
+            fields.push({
+                name: `**${title}**`|| 'Comando sin nombre',
+                value: `**Uso:** ${safeUsage}\n**Descripción:** ${safeDescription}`,
+                inline: false
+            });
+
+        }
+        embeds.push(new EmbedBuilder()
+            .setColor('#0099ff')
+            .setTitle(`Comandos en ${carpeta}`)
+            .setDescription(`comandos disponibles con ${traslatecommands[carpeta]}`)
+            .addFields(fields)
+        );
+    }
+    return { embeds };
+}
+function callHelpCommand(folder, file){
+    let title = "";
+    let usage = "";
+    let description = "";
+
+    try {
+        const command = require(`./${folder}/${file}`);
+
+        title = command.name ?? file.replace('.js', '');
+        usage = command.usage || '';
+        description = command.description || '';
+
+    } catch (e) {
+        console.error('Error cargando el comando:', e);
+    }
+
+    return { title, usage, description };
+}
+
+
+const handlerReqireCommand = async (carpeta, arg, message, redis)=>{
   try{
+    console.log(`log desde handlerReqireCommand: carpeta: ${carpeta}, arg: ${arg}`)
+    if (arg==='--help'){
+        //  llamar a una funcion que busque en [carpeta] yy esta funcion llame a usage de cada comando y lo muestre en un embed
+        const {embeds} = await scanFoldersCommands([carpeta])
+        return message.reply({embeds: embeds});
+
+    }
     const command = require(`./${carpeta}/${arg}`)
     command.run(message, redis)
   }catch(e){
@@ -274,31 +342,37 @@ client.on(Events.MessageCreate, async message => {
     console.log('Message received:',  'ServerName',message.guild.name, 'ChannelName', message.channel.name, message.author.username, ':', message.content );
 
     if (message.content.startsWith('%s')) {
-          if (message.member && !message.member?.permissions.has(PermissionsBitField.Flags.Administrator) && message.author.id !== '708054004923629639') {
-              return message.reply('¡Solo los administradores pueden ejecutar este comando!');
-          }
-        
-           // Handler comannd
-          const arg = message.content.slice(3).split(' ')[0]
-          if(arg === 'create'){
-            const arg = message.content.slice(3).split(' ')[1]
-            console.log(arg)
-            handlerReqireCommand('createCommands', arg, message, redis)
-          }
-          else if (arg === 'edit'){
-            const arg = message.content.slice(3).split(' ')[1]
-            console.log(arg)
-            handlerReqireCommand('editCommands', arg, message, redis)
-          }
-          else if (arg === 'setup'){
-            const arg = message.content.slice(3).split(' ')[1]
-            console.log(arg)
-            handlerReqireCommand('setup', arg, message, redis)
-          }
-          else{
-            console.log(arg)
-            handlerReqireCommand('adminCommands', arg, message, redis)
-          }
+            if (message.member && !message.member?.permissions.has(PermissionsBitField.Flags.Administrator) && message.author.id !== '708054004923629639') {
+                return message.reply('¡Solo los administradores pueden ejecutar este comando!');
+            }
+          
+             // Handler comannd
+            const arg = message.content.slice(3).split(' ')[0]
+            if(arg === 'create'){
+              const arg = message.content.slice(3).split(' ')[1]
+              console.log(arg)
+              handlerReqireCommand('createCommands', arg, message, redis)
+            }
+            else if (arg === 'edit'){
+              const arg = message.content.slice(3).split(' ')[1]
+              console.log(arg)
+              handlerReqireCommand('editCommands', arg, message, redis)
+            }
+            else if (arg === 'setup'){
+              const arg = message.content.slice(3).split(' ')[1]
+              console.log(arg)
+              handlerReqireCommand('setup', arg, message, redis)
+            }
+            else if (arg === '--help'){
+              //  llamar a una funcion que busque en [adminCommands, createCommands, editCommands, setup] yy esta funcion llame a otra funcion que llame a usage de cada comando y lo muestre en un embed
+                const {embeds} = await scanFoldersCommands(['adminCommands', 'createCommands', 'editCommands', 'setup'])
+                return message.reply({embeds: embeds});
+            }
+
+            else{
+              console.log(arg)
+              handlerReqireCommand('adminCommands', arg, message, redis)
+            }
           
 
 
