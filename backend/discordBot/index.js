@@ -59,7 +59,6 @@ async function scanFoldersCommands(carpetasarray){
                 inline: false
             });
         }
-        // Seleccionar color según índice, usando modulo para no salir del array
         const color = colors[i % colors.length];
         embeds.push(new EmbedBuilder()
             .setColor(color)
@@ -109,41 +108,6 @@ const handlerReqireCommand = async (carpeta, arg, message, redis)=>{
 
 
 
-
-
-
-
-
-
-/* const exampleTask = async () => {
-    const boton = new ButtonBuilder()
-        .setCustomId('sendReportTomateTeam')  // Identificador único para el botón
-        .setLabel('Presionar aquí')  // Etiqueta del botón
-        .setStyle(ButtonStyle.Primary);  // Estilo del botón (puede ser 'Primary', 'Secondary', etc.)
-
-    // Crear una fila de acción que contenga el botón
-    const fila = new ActionRowBuilder().addComponents(boton);
-
-    // Enviar el mensaje con el botón
-
-    const targetChannelId = '1327408280217059444'; 
-    const channel = client.channels.cache.get(targetChannelId);
-
-        if (channel) {
-            // Envía un mensaje al canal
-            const embed = new EmbedBuilder()
-                .setColor('#0099ff')
-                .setTitle('Reporte del Clan')
-                .setDescription('Presiona el botón para obtener el reporte del clan en exel.')
-            channel.send({
-              content: '',
-                embeds: [embed],
-               components: [fila],            
-            });
-        } else {
-            console.log('Canal no encontrado.');
-        }
-}*/
 
 client.on('ready', async () => {
     console.log(`Logged in as ${client.user.tag}`);
@@ -238,7 +202,7 @@ client.on('ready', async () => {
                     
                         
                     
-                    // aqui se edita el titulo del canal de voz 
+                    
 
                 }
             }
