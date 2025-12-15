@@ -1,6 +1,6 @@
 const {jailRoleId } = require('../config.json');
 module.exports = {
-    description:'',
+    description:'comando no disponible',
     run: async(message)=>{
         const args = message.content.split(' ').slice(1).join(' ')
 

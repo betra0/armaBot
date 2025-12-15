@@ -7,7 +7,8 @@ const button = new ButtonBuilder()
 
 
 module.exports = {
-    description:'',
+    description:'Borra todos los mensajes que pueda en un canal de forma masiva. Usar con mucha precaución.',
+    usage: '%s superclear ',
     run: async (message) => {
         try {
             const args = message.content.split(' ').slice(1).join(' ');

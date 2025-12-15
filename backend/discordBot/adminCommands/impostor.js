@@ -1,5 +1,6 @@
 module.exports = {
-    description:'para poder mandar msg como si fues el bot',
+    description:'Envía un mensaje como si fuera otro usuario. Puedes especificar un canal diferente usando el argumento --channel .',
+    usage: '%s impostor --channel #channel @user messageContent',
     run: async (message) => {
         const args = message.content.split(' ');
         args.shift(); // eliminar el primer elemento que es el activador del comando
@@ -9,7 +10,7 @@ module.exports = {
         let avatarURL = message.author.displayAvatarURL({ dynamic: true })
         let nickname =  message.author.displayName ;
         console.log('este es el args: ', args)
-        const channelIndex = args.indexOf('-channel');
+        const channelIndex = args.indexOf('--channel');
         if (channelIndex !== -1 && channelIndex < args.length - 1) {
             isNewChannel = true
             channelName = args[channelIndex + 1];

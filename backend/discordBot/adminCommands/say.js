@@ -1,7 +1,8 @@
 const { channelLink } = require('discord.js');
 
 module.exports = {
-    description:'para poder mandar msg como si fues el bot',
+    description:'Envía un mensaje como si lo enviara el bot, puedes especificar un canal diferente usando el argumento --channel #channel.',
+    usage: '%s say --channel #channel messageContent',
     run: async (message) => {
         const args = message.content.split(' ');
         args.shift(); // eliminar el primer elemento que es el activador del comando
@@ -9,7 +10,7 @@ module.exports = {
         let isNewChannel = false
         let messageContent = '';
         console.log('este es el args: ', args)
-        const channelIndex = args.indexOf('-channel');
+        const channelIndex = args.indexOf('--channel');
         console.log(channelIndex, args[channelIndex])
         if (channelIndex !== -1 && channelIndex < args.length - 1) {
             isNewChannel = true

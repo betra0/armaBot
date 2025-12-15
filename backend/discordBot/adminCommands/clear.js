@@ -3,11 +3,7 @@ const { parseArgs } = require('../utils/parseArgs');
 
 
 module.exports = {
-    description: `Comando para borrar mensajes puntuales, de forma limpia(sin replys del bot).
-    Puede usarse para borrar una cantidad específica (por defecto 1 maximo 5) 
-    y a partir de un mensaje en específico (opción avanzada). 
-    Ejemplo: %s clear 2 --id idDelMensaje. 
-    No sirve para borrar mensajes en masa.`,
+    description: `Comando para borrar mensajes puntuales de forma limpia (sin respuestas del bot). Puede usarse para borrar una cantidad específica de mensajes (por defecto 1, máximo 5) y a partir de un mensaje en específico (opción avanzada). No se puede usar para borrar mensajes en masa.`,
     usage: '%s clear [amount] --id [messageID]',
 
     run: async (message) => {
