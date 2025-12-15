@@ -36,31 +36,35 @@ async function scanFoldersCommands(carpetasarray){
     const embeds = []
     embeds.push(generateMessageEmbed(
         {
-            title:'Lista de Comandos Disponibles',
-            descripcion:`Aquí tienes una lista de los comandos disponibles, con activador comando --help puedes ver más detalles de cada uno.`,
-            color:'#0099ff',
+            title: 'Lista de Comandos Disponibles',
+            descripcion: `Aquí tienes la lista de comandos disponibles según el tipo que hayas consultado. Los comandos que aparecen como \`%s comando\` son **solo para administradores**, mientras que los comandos con \`%comando\` son libres para cualquier usuario. Usa '--help' después de un comando para ver más detalles.`,
+            color: '#0099ff',
         }
     ));
-    for (const carpeta of carpetasarray){
-        const fields = []
-        const files=fs.readdirSync(`./${carpeta}`);
-        for (const file of files){
+    const colors = ['#ff9900', '#33cc33', '#ff3333', '#9933ff', '#00cc99'];
+
+    for (let i = 0; i < carpetasarray.length; i++) {
+        const carpeta = carpetasarray[i];
+        const fields = [];
+        const files = fs.readdirSync(`./${carpeta}`);
+        for (const file of files) {
             const { title, usage, description } = callHelpCommand(carpeta, file);
 
             const safeUsage = usage?.trim() || 'No definido';
             const safeDescription = description?.trim() || 'Sin descripción';
 
             fields.push({
-                name: `**${title}**`|| 'Comando sin nombre',
+                name: `**${title}**` || 'Comando sin nombre',
                 value: `**Uso:** ${safeUsage}\n**Descripción:** ${safeDescription}`,
                 inline: false
             });
-
         }
+        // Seleccionar color según índice, usando modulo para no salir del array
+        const color = colors[i % colors.length];
         embeds.push(new EmbedBuilder()
-            .setColor('#0099ff')
+            .setColor(color)
             .setTitle(`Comandos en ${carpeta}`)
-            .setDescription(`comandos disponibles con ${traslatecommands[carpeta]}`)
+            .setDescription(`Comandos disponibles con ${traslatecommands[carpeta]}`)
             .addFields(fields)
         );
     }
