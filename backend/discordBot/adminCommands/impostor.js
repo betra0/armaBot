@@ -45,19 +45,26 @@ module.exports = {
         //if (!channelName.permissionsFor(message.author).has('SEND_MESSAGES')) {
         //    return message.reply('No tienes permiso para enviar mensajes en ese canal.');
         //}
-        if(!isNewChannel){
-            message.delete()
+        if (!isNewChannel) {
+            await message.delete();
         }
-        channelName.createWebhook({
-            name: nickname,
-            avatar: avatarURL,
-            reason: 'Needed a cool new Webhook'
-          })
-            .then(webhook => {
-                // Enviar el mensaje a través del webhook
-                webhook.send(messageContent);
-            })
-            .catch(console.error);
+
+        try {
+            const webhook = await channelName.createWebhook({
+                name: nickname,
+                avatar: avatarURL,
+                reason: 'Impersonation command'
+            });
+      
+            await webhook.send(messageContent);
+      
+            // borrar el webhook ya que es de un solo uso
+            await webhook.delete();
+      
+        } catch (err) {
+            console.error(err);
+        }
+
 
     }
 }
