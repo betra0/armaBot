@@ -177,7 +177,6 @@ client.on('ready', async () => {
                 return
             }
             for (const valuesSub of listValuesSub){
-                console.log('status info; ', infoAdress.status)
                 if ( type==='status' && valuesSub.channelID && valuesSub.messageID){
                     
                     // crear embed con la info del server
@@ -253,7 +252,7 @@ async function retryEditChannelTitle(
             await new Promise(res => setTimeout(res, retryTime)); // Esperar antes de reintentar
             return retryEditChannelTitle({ attempt: attempt + 1, channelID, maxAttempts, redisClient, titletextFunc, client });
         } else {
-            console.log(`Se alcanzó el número máximo de intentos para el canal ${channelID} u otro error, abortando.`);
+            console.log(`Se alcanzó el número máximo de intentos para el canal ${channelID} u otro error, abortando.`, attempt,'/' ,maxAttempts);
             await redisClient.del(`retrying:${channelID}`); // Liberar canal en fallo definitivo
         }
     }

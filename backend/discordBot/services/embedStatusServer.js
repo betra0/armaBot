@@ -37,7 +37,6 @@ async function checkImageExists(url) {
 }
 
 const  GenerateEmbedStatusServer = async ({infoAdress=null, seudoTitle='No definido'}) => {
-    console.log('infoAdress dentro de Gener..EbedStatus: ', infoAdress)
     const allEbeds = []
     if (!infoAdress){
          return [generateMessageEmbed({title:'Warning', descripcion:'No se a encontrado Informacion del servidor aun.'}),]
@@ -60,7 +59,6 @@ const  GenerateEmbedStatusServer = async ({infoAdress=null, seudoTitle='No defin
             // comprobar que la img existe
             if (randomImg && await checkImageExists(randomImg)){
                 imgToUse = randomImg
-                console.log('img a usar encontrada: ', imgToUse)
                 break
             }
             indexRotos.push(randomIndex)
@@ -75,7 +73,6 @@ const  GenerateEmbedStatusServer = async ({infoAdress=null, seudoTitle='No defin
         }
         console.log('Fuera del bucle, intentos usados: ', intent,)
     }
-    console.log('antes del primer embed')
     const embed = new EmbedBuilder()
     .setColor('#0099ff')
     .setTitle(`≫ ${seudoTitle} ≪`)
@@ -97,7 +94,6 @@ const  GenerateEmbedStatusServer = async ({infoAdress=null, seudoTitle='No defin
     allEbeds.push(embed)
     // si el status es false se agrega un embed de error
     if(infoAdress.status == false){
-        console.log('status false')
         allEbeds.push(generateMessageEmbed({title:'Error', descripcion:'El servidor se encuentra cerrado o no se ha podido obtener la información.'}))
     }
 
