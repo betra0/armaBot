@@ -167,7 +167,6 @@ client.on('ready', async () => {
             const ip = message;
             let type = channel === 'adressChangeInfo' ? 'status' : 'playerCountInTitle'
             const listValuesSub = await getListRedisIpSubcription({type:type, adress:ip, redis:redis})
-            console.log(listValuesSub)
             if (!listValuesSub || listValuesSub.length === 0){
                 return
             }   
@@ -349,7 +348,7 @@ client.on(Events.MessageCreate, async message => {
             return
         }
       const arg = `${resComand}`
-      // agregarle  comando despues del iniciador %r a arg
+      
       
 
       console.log(arg)
@@ -376,9 +375,8 @@ client.on('interactionCreate', async (interaction) => {
     });
 
     if (data && data.btnId && interaction.customId === data.btnId) {
-    console.log('Botón de verificación presionado por', interaction.user.tag);
-    console.log('idrol:', data.roleToAssign);
-    console.log('data:', data);
+    console.log('*****Botón de verificación presionado por:', interaction.user.tag);
+ 
 
         const role = interaction.guild.roles.cache.get(data.roleToAssign);
 
@@ -402,6 +400,7 @@ client.on('interactionCreate', async (interaction) => {
                 embeds: embeds,
                 flags: MessageFlags.Ephemeral
             });
+            console.log('Rol de verificación asignado correctamente a', interaction.user.tag);
         } else {
             await interaction.reply({
                 content: 'Error: El rol de verificación no existe.',
@@ -411,52 +410,6 @@ client.on('interactionCreate', async (interaction) => {
     }
 });
 
-/* client.on('interactionCreate', async (interaction) => {
-    if (!interaction.isButton()) return;  // Asegúrate de que la interacción sea un botón
-
-    if (interaction.customId === 'sendReportTomateTeam') {
-        try {
-            // Hacer la solicitud GET para obtener el archivo desde tu API
-            const url = `http://${process.env.APIHOST}:${process.env.APIPORT}/report`;
-            const response = await axios.get(url, {
-                responseType: 'arraybuffer', // Esto es importante para obtener el archivo binario
-            });
-
-            // Crear un archivo temporal en el sistema con el contenido del archivo recibido
-            const filePath = path.join(__dirname, 'reporte_generado.xlsx');
-            fs.writeFileSync(filePath, response.data); // Guardar el archivo recibido
-
-            // Enviar el archivo al canal
-            const embed = new EmbedBuilder()
-                .setColor('#0099ff')
-                .setTitle('Reporte del Clan')
-                .setDescription(`Se ha generado un reporte para ${interaction.user.username}.`)
-                .setTimestamp();
-            const mensajeReply = await interaction.reply({
-                content: ``,
-                files: [{ attachment: filePath, name: 'ReporteTomateTeam.xlsx' }],
-                embeds: [embed],
-                flags: 64
-            });
-
-
-            // Opcional: Eliminar el archivo temporal después de enviarlo
-            fs.unlinkSync(filePath);
-            setTimeout(() => {
-                mensajeReply.delete().catch(console.error);  // Eliminar el mensaje
-            }, 60000);
-            
-
-        } catch (error) {
-            console.error('Error al obtener el reporte:', error);
-            await interaction.reply({
-                content: 'Hubo un error al generar el reporte. Intenta de nuevo más tarde.',
-                flags: 64
-            });
-        }
-
-    }
-}); */
 
 
 
