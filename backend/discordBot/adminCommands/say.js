@@ -1,54 +1,45 @@
 const { channelLink } = require('discord.js');
+const { parseArgs } = require('../utils/parseArgs');
 
 module.exports = {
-    description:'Envía un mensaje como si lo enviara el bot, puedes especificar un canal diferente usando el argumento --channel #channel.',
-    usage: '%s say --channel #channel messageContent',
+    description:'Envía un mensaje como si lo enviara el bot, puedes especificar un canal diferente usando el argumento o flag --channel #canal o -c #canal',
+    usage: '%s say messageContent, %s say --channel #channel messageContent o %s say -c #channel messageContent',
     run: async (message) => {
-        const args = message.content.split(' ');
-        args.shift(); // eliminar el primer elemento que es el activador del comando
-        let channelName = message.channel; // Por defecto, se utilizará el canal actual
-        let isNewChannel = false
+        let args = parseArgs(message.content);
+        args = args.slice(2); // eliminar el primer y segundo elemento que es el activador del comando y el comando 'say'
+        let channel = message.channel; // Por defecto, se utilizará el canal actual
         let messageContent = '';
         console.log('este es el args: ', args)
-        const channelIndex = args.indexOf('--channel');
+        let inputChannel = null
+        const channelIndex = args.findIndex(arg => arg === '--channel' || arg === '-c');
         console.log(channelIndex, args[channelIndex])
         if (channelIndex !== -1 && channelIndex < args.length - 1) {
-            isNewChannel = true
-            channelName = args[channelIndex + 1];
+            inputChannel = args[channelIndex + 1];
             args.splice(channelIndex, 2);
         }
 
-        messageContent = args.slice(1).join(' ');
+        messageContent = args.join(' ');
 
-        if (isNewChannel && channelName.startsWith('<#') && channelName.endsWith('>')) {
-            const channelId = channelName.slice(2, -1);
+        if (inputChannel && inputChannel.startsWith('<#') && inputChannel.endsWith('>')) {
+            const channelId = inputChannel.slice(2, -1);
             // Buscar el canal por su ID
-            channelName = message.guild.channels.cache.get(channelId);
-        } else if(isNewChannel){
+            channel = message.guild.channels.cache.get(channelId) ?? await message.guild.channels.fetch(channelId).catch(() => null);
+        } else if(inputChannel){
             //  buscar el canal por su nombre
-            channelName = message.guild.channels.cache.find(channel => channel.name === channelName);
+            channel = message.guild.channels.cache.find(channel => channel.name === inputChannel) ?? null;
         }
-        if (isNewChannel && !channelName) {
-            return message.reply(`No se encontró un canal con el nombre ${channelName}.`);
+        if (inputChannel && !channel) {
+            return message.reply(`No se encontró el canal ${inputChannel}.`);
         }
-  /*       if (!channelName.permissionsFor(message.author).has('SEND_MESSAGES')) {
+  /*       if (!channel.permissionsFor(message.author).has('SEND_MESSAGES')) {
             return message.reply('No tienes permiso para enviar mensajes en ese canal.');
         } */ // Descometar un ves Arreglen esta lineas Que no funcionan
-        if(!isNewChannel){
+        if(!inputChannel){
             message.delete()
         }
 
-        channelName.send(messageContent)
-        /* channelName.createWebhook({
-            name: 'Snek',
-            avatar: 'https://i.imgur.com/mI8XcpG.jpg',
-            reason: 'Needed a cool new Webhook'
-          })
-            .then(webhook => {
-                // Enviar el mensaje a través del webhook
-                webhook.send(messageContent);
-            })
-            .catch(console.error); */
+        channel.send(messageContent)
+
 
     }
 }
