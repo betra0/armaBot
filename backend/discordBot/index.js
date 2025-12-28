@@ -11,6 +11,17 @@ const { getListRedisIpSubcription, getInfoAdressForRedis, getSimpleRedisJson } =
 const { GenerateEmbedStatusServer } = require('./services/embedStatusServer');
 const { generateMessageEmbed } = require('./services/embedMessageGenerator');
 
+
+const { Agent } = require('undici');
+
+const craftyDispatcher = new Agent({
+    connect: {
+        rejectUnauthorized: false, // cert autofirmado de Crafty
+    },
+});
+
+
+
 console.log('este es el Redis host y port \n ', process.env.REDISHOST, process.env.REDISPORT)
 
 function sleep(ms) {
@@ -368,11 +379,12 @@ client.on(Events.MessageCreate, async message => {
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isButton()) return;
 
-    const data = await getSimpleRedisJson({
+    let data = await getSimpleRedisJson({
         redis: redis,
         type: 'checkUser:config',
         UID: `${interaction.guild.id}`
     });
+
 
     if (data && data.btnId && interaction.customId === data.btnId) {
     console.log('*****Botón de verificación presionado por:', interaction.user.tag);
@@ -407,12 +419,63 @@ client.on('interactionCreate', async (interaction) => {
                 flags: MessageFlags.Ephemeral
             });
         }
+        return;
+    }
+    data = await getSimpleRedisJson({
+        redis: redis,
+        type: 'adminCraftyServer:config',
+        UID: `${interaction.guild.id}`
+    });
+    if (data && (data.btnStartId === interaction.customId || data.btnStopId === interaction.customId || data.btnRebootId === interaction.customId || data.btnBackUpId === interaction.customId)) {
+        console.log('*****Botón de administración presionado por:', interaction.user.tag);
+        if (interaction.customId === data.btnStartId) {
+            try {
+                await sendCraftyAction(data.serverEndpoint, data.craftyToken, 'start_server');
+            
+                await interaction.reply({
+                    content: '✅ El servidor está arrancando.',
+                    ephemeral: true,
+                });
+            } catch (e) {
+                console.error(e);
+                await interaction.reply({
+                    content: `❌ ${e.message}`,
+                    ephemeral: true,
+                });
+            }
+        } else if (interaction.customId === data.btnStopId || interaction.customId === data.btnRebootId) {
+            //revisar si el usuario tiene rol permitido data.roleToAdmin tiene el id del rol
+            if (interaction.member && !interaction.member?.roles.cache.has(data.roleToAdmin)) {
+                return interaction.reply({
+                    content: '❌ ¡No tienes permiso para realizar esta acción!',
+                    ephemeral: true,
+                });
+            }
+            const action = interaction.customId === data.btnStopId ? 'stop_server' : 'restart_server';
+            try {
+                await sendCraftyAction(data.serverEndpoint, data.craftyToken, action);
+
+                await interaction.reply({
+                    content: '⏹️ El servidor se está deteniendo o reiniciando.',
+                    ephemeral: true,
+                });
+            } catch (e) {
+                console.error(e);
+                await interaction.reply({
+                    content: `❌ ${e.message}`,
+                    ephemeral: true,
+                });
+            }
+        }
+        
+
+
+
+
+
+
     }
 });
-
-
-
-
 async function ejecutar() {
     console.log('Esperando unos segundos para iniciar el bot...');
     await sleep( 4 * 1000); 
@@ -434,11 +497,52 @@ ejecutar();
 
 
 
+// 
+
+async function startCraftyServer(serverEndpoint, token) {
+    const res = await fetch(
+        `${serverEndpoint}/action/start_server`,
+        {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            dispatcher: craftyDispatcher,
+        }
+    );
+
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Crafty error ${res.status}: ${text}`);
+    }
+
+    return res.json();
+}
 
 
 
 
+async function sendCraftyAction(serverEndpoint, token, action) {
+    const res = await fetch(
+        `${serverEndpoint}/action/${action}`,
+        {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            dispatcher: craftyDispatcher,
+        }
+    );
 
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Crafty error ${res.status}: ${text}`);
+    }
+
+    return res.json();
+}
 
 
 
