@@ -10,6 +10,7 @@ require('dotenv').config({ path: '../../.env' });
 const { getListRedisIpSubcription, getInfoAdressForRedis, getSimpleRedisJson } = require('./services/getFromRedis');
 const { GenerateEmbedStatusServer } = require('./services/embedStatusServer');
 const { generateMessageEmbed } = require('./services/embedMessageGenerator');
+const { reloadStatusCraftyTask } = require('./task/reloadStatusCrafty');
 
 
 
@@ -374,6 +375,24 @@ client.on(Events.MessageCreate, async message => {
 });
 
 
+
+
+//tasks
+async function startReloadLoop() {
+    while(true) {
+        try {
+            await reloadStatusCraftyTask(client, redis);
+        } catch (e) {
+            console.error('Error en reloadStatusCraftyTask:', e);
+        }
+        await sleep(1000 * 60 * 2); // 3 minutos
+    }
+}
+
+
+
+
+
 async function ejecutar() {
     console.log('Esperando unos segundos para iniciar el bot...');
     await sleep( 4 * 1000); 
@@ -386,7 +405,9 @@ async function ejecutar() {
         host: process.env.REDISHOST,
         port: process.env.REDISPORT
     });
-    client.login(token);
+    await client.login(token);
+
+    startReloadLoop();
 
 }
 
