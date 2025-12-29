@@ -3,22 +3,16 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const { findAndEditMessageText, findAndEditChannelName } = require('./services/findAndEditMessageText');
-const generateRegister = require('./other/generateRegister');
+
 const Redis = require('ioredis');
 require('dotenv').config({ path: '../../.env' });
-const { saveRedisNewMessageSubcription } = require('./services/insertInRedis');
+
 const { getListRedisIpSubcription, getInfoAdressForRedis, getSimpleRedisJson } = require('./services/getFromRedis');
 const { GenerateEmbedStatusServer } = require('./services/embedStatusServer');
 const { generateMessageEmbed } = require('./services/embedMessageGenerator');
 
 
-const { Agent } = require('undici');
 
-const craftyDispatcher = new Agent({
-    connect: {
-        rejectUnauthorized: false, // cert autofirmado de Crafty
-    },
-});
 
 
 
@@ -136,22 +130,6 @@ client.on('ready', async () => {
     /* runInterval(); */
 
 
-    // NO usado de momento
-    /* await findAndEditChannelName(
-        client, 
-        '1350949826363392042', 
-        `🎮 Bot OFF 👥`,
-        true
-    );
-    setTimeout(async ()=>{
-        
-    await findAndEditChannelName(
-        client, 
-        '1350949899470114846', 
-        `🎮 Bot OFF 👥`,
-        true
-    );
-    }, 1500) */
     
 
 
@@ -220,6 +198,7 @@ client.on('ready', async () => {
     })
 
 });
+
 async function retryEditChannelTitle(
     {  
         attempt = 1,
@@ -309,6 +288,24 @@ client.on(Events.GuildMemberRemove, async member => {
     changeAmountMembers({member})  
 });
 
+// Cargar Eventos 
+
+const eventsPath = path.join(__dirname, 'events');
+const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
+
+for (const file of eventFiles) {
+    const filePath = path.join(eventsPath, file);
+    const event = require(filePath);
+
+    if (event.once) {
+        client.once(event.name, (...args) => event.execute(...args, client , redis));
+    } else {
+        client.on(event.name, (...args) => event.execute(...args, client , redis));
+    }
+}
+
+// fin 
+
 // cuando se manda un mensaje por un servidor de discord    
 client.on(Events.MessageCreate, async message => {
     if (message.author.bot) return
@@ -376,106 +373,7 @@ client.on(Events.MessageCreate, async message => {
 
 });
 
-client.on('interactionCreate', async (interaction) => {
-    if (!interaction.isButton()) return;
 
-    let data = await getSimpleRedisJson({
-        redis: redis,
-        type: 'checkUser:config',
-        UID: `${interaction.guild.id}`
-    });
-
-
-    if (data && data.btnId && interaction.customId === data.btnId) {
-    console.log('*****Botón de verificación presionado por:', interaction.user.tag);
- 
-
-        const role = interaction.guild.roles.cache.get(data.roleToAssign);
-
-        if (role) {
-            await interaction.member.roles.add(role);
-            const embeds = [];
-            let destacados='';
-            if (data.importantChannels && data.importantChannels.length > 0) {
-                destacados =` y a canales recurrentes como: ` + data.importantChannels.map(channelId => `<#${channelId}>`).join(' ');
-                
-            }
-            embeds.push(generateMessageEmbed(
-                    {
-                        title:'¡Verificación exitosa!',
-                        descripcion:` Ahora tienes acceso al servidor${destacados}.` ,
-                        color:'#00ff00',
-                    }
-                ));
-            await interaction.reply({
-                content: '',
-                embeds: embeds,
-                flags: MessageFlags.Ephemeral
-            });
-            console.log('Rol de verificación asignado correctamente a', interaction.user.tag);
-        } else {
-            await interaction.reply({
-                content: 'Error: El rol de verificación no existe.',
-                flags: MessageFlags.Ephemeral
-            });
-        }
-        return;
-    }
-    data = await getSimpleRedisJson({
-        redis: redis,
-        type: 'adminCraftyServer:config',
-        UID: `${interaction.guild.id}`
-    });
-    if (data && (data.btnStartId === interaction.customId || data.btnStopId === interaction.customId || data.btnRebootId === interaction.customId || data.btnBackUpId === interaction.customId)) {
-        console.log('*****Botón de administración presionado por:', interaction.user.tag);
-        if (interaction.customId === data.btnStartId) {
-            try {
-                await sendCraftyAction(data.serverEndpoint, data.craftyToken, 'start_server');
-            
-                await interaction.reply({
-                    content: '✅ El servidor está arrancando.',
-                    ephemeral: true,
-                });
-            } catch (e) {
-                console.error(e);
-                await interaction.reply({
-                    content: `❌ ${e.message}`,
-                    ephemeral: true,
-                });
-            }
-        } else if (interaction.customId === data.btnStopId || interaction.customId === data.btnRebootId) {
-            //revisar si el usuario tiene rol permitido data.roleToAdmin tiene el id del rol
-            if (interaction.member && !interaction.member?.roles.cache.has(data.roleToAdmin)) {
-                return interaction.reply({
-                    content: '❌ ¡No tienes permiso para realizar esta acción!',
-                    ephemeral: true,
-                });
-            }
-            const action = interaction.customId === data.btnStopId ? 'stop_server' : 'restart_server';
-            try {
-                await sendCraftyAction(data.serverEndpoint, data.craftyToken, action);
-
-                await interaction.reply({
-                    content: '⏹️ El servidor se está deteniendo o reiniciando.',
-                    ephemeral: true,
-                });
-            } catch (e) {
-                console.error(e);
-                await interaction.reply({
-                    content: `❌ ${e.message}`,
-                    ephemeral: true,
-                });
-            }
-        }
-        
-
-
-
-
-
-
-    }
-});
 async function ejecutar() {
     console.log('Esperando unos segundos para iniciar el bot...');
     await sleep( 4 * 1000); 
@@ -497,52 +395,6 @@ ejecutar();
 
 
 
-// 
-
-async function startCraftyServer(serverEndpoint, token) {
-    const res = await fetch(
-        `${serverEndpoint}/action/start_server`,
-        {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
-            dispatcher: craftyDispatcher,
-        }
-    );
-
-    if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Crafty error ${res.status}: ${text}`);
-    }
-
-    return res.json();
-}
-
-
-
-
-async function sendCraftyAction(serverEndpoint, token, action) {
-    const res = await fetch(
-        `${serverEndpoint}/action/${action}`,
-        {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
-            dispatcher: craftyDispatcher,
-        }
-    );
-
-    if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Crafty error ${res.status}: ${text}`);
-    }
-
-    return res.json();
-}
 
 
 
