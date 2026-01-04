@@ -144,6 +144,24 @@ const reloadStatusCraftyTask = async (client, redis) => {
                 // manejar error
                 continue;
             }
+            // convertir el valor de fecha de inicio en 20 horas desde que se inicio
+            let iniciado = "Apagado";
+
+            if (data.started && data.started !== 'False') {
+                // Forzar UTC
+                const startedDate = new Date(
+                    data.started.replace(" ", "T") + "Z"
+                );
+            
+                const now = new Date();
+                const diffMs = now.getTime() - startedDate.getTime();
+            
+                if (!isNaN(diffMs) && diffMs >= 0) {
+                    const diffHrs = Math.floor(diffMs / 3600000);
+                    const diffMins = Math.floor((diffMs % 3600000) / 60000);
+                    iniciado = `${diffHrs}h ${diffMins}m`;
+                }
+            }
             // generar embed
             const AllEmbeds = [];
             const embed = new EmbedBuilder()
@@ -155,7 +173,7 @@ const reloadStatusCraftyTask = async (client, redis) => {
                     { name: 'Jugadores', value: `${data.online}/${data.max}`, inline: true },
                     { name: 'cpu', value: `${data.cpu}%`, inline: true },
                     { name: 'Memoria', value: `${data.mem_percent}% (${data.mem})`, inline: true },
-                    { name : 'Iniciado' , value: `${data.started || 'off'}` , inline: true },
+                    { name : 'Iniciado' , value: `${iniciado}` , inline: true },
                     { name : 'Puerto' , value: `${data.server_port}` , inline: true },
                     { name : 'world_size' , value: `${data.world_size}` , inline: true },
                     { name : 'Versión' , value: `${data.version|| 'Desconocida'}` , inline: true }
