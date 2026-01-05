@@ -210,7 +210,9 @@ const reloadStatusCraftyTask = async (client, redis) => {
                 UID: `${guildId}`
             });
             if (actions && actions.length > 0) {
-                const logs = actions.map(action => `${action.user} realizó la acción: ${action.action}`).join('\n');
+                const logs = actions
+                    .map(a => `[${new Date(a.date).toLocaleString('es-CL', { timeZone: 'America/Santiago' })}] ${a.user} realizó la acción: ${a.action}`)
+                    .join('\n');
                 const embed3 = new EmbedBuilder()
                     .setColor('#0099ff')
                     .setTitle(`Registro de acciones`)
