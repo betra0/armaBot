@@ -1,6 +1,7 @@
 const { Agent } = require('undici');
 const { findAndEditMessageText } = require('../services/findAndEditMessageText');
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { getSimpleRedisJson } = require('../services/getFromRedis');
 
 const craftyDispatcher = new Agent({
     connect: {
@@ -202,6 +203,19 @@ const reloadStatusCraftyTask = async (client, redis) => {
                     .setTitle(`Jugadores ${data.online}/${data.max}`)
                     .addFields(fieldsPlayers);
                 AllEmbeds.push(embed2);
+            }
+            actions = await getSimpleRedisJson({
+                redis,
+                type: 'adminCraftyServer:register',
+                UID: `${guildId}`
+            });
+            if (actions && actions.length > 0) {
+                const logs = actions.map(action => `${action.user} realizó la acción: ${action.action}`).join('\n');
+                const embed3 = new EmbedBuilder()
+                    .setColor('#0099ff')
+                    .setTitle(`Registro de acciones`)
+                    .setDescription(`\`\`\`log\n${logs}\n\`\`\``);
+                AllEmbeds.push(embed3);
             }
             // agregar los botones de administrar servidor con el Id correspondiente
             const actionRow = new ActionRowBuilder()

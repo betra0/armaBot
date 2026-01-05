@@ -3,6 +3,7 @@ const { Agent } = require('undici');
 const { MessageFlags } = require('discord.js');
 const { getListRedisIpSubcription, getInfoAdressForRedis, getSimpleRedisJson } = require('../services/getFromRedis');
 const { generateMessageEmbed } = require('../services/embedMessageGenerator');
+const { saveSimpleRedisJson } = require('../services/insertInRedis');
 
 
 const craftyDispatcher = new Agent({
@@ -84,6 +85,7 @@ module.exports = {
                         content: '✅ El servidor está arrancando.',
                         ephemeral: true,
                     });
+                    await setRegisterAction({ redis, interaction, userName: interaction.user.tag, action: 'start_server' });
                 } catch (e) {
                     console.error(e);
                     await interaction.reply({
@@ -105,9 +107,10 @@ module.exports = {
                     await sendCraftyAction(data.serverEndpoint, data.craftyToken, action);
 
                     await interaction.reply({
-                        content: '⏹️ El servidor se está deteniendo o reiniciando.',
+                        content: '⏹️ El servidor se está deteniendo, reiniciando o haciendo una copia de seguridad.',
                         ephemeral: true,
                     });
+                    await setRegisterAction({ redis, interaction, userName: interaction.user.tag, action: action });
                 } catch (e) {
                     console.error(e);
                     await interaction.reply({
@@ -156,4 +159,34 @@ async function sendCraftyAction(serverEndpoint, token, action) {
     }
 
     return res.json();
+}
+
+async function setRegisterAction({redis, interaction, userName = "user", action='None'}) {
+
+    //register debe ser un array de acciones max 5
+    let register = await getSimpleRedisJson({
+        redis,
+        type: 'adminCraftyServer:register',
+        UID: `${interaction.guild.id}`,
+    });
+    if (!register || !Array.isArray(register)) {
+        register = [];
+    }
+    register.push({
+        user: userName,
+        action: action,
+        date: new Date().toISOString(),
+    })
+    if (register.length > 5) {
+        register.shift();
+    }
+
+    await saveSimpleRedisJson({
+        redis,
+        type: 'adminCraftyServer:register',
+        UID: `${interaction.guild.id}`,
+        json: register,
+
+     });
+
 }
