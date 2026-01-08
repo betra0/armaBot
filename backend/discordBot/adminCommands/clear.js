@@ -3,7 +3,7 @@ const { parseArgs } = require('../utils/parseArgs');
 
 
 module.exports = {
-    description: `Comando para borrar mensajes puntuales de forma limpia (sin respuestas del bot). Puede usarse para borrar una cantidad específica de mensajes (por defecto 1, máximo 5) y a partir de un mensaje en específico (opción avanzada). No se puede usar para borrar mensajes en masa.`,
+    description: `Comando para borrar mensajes puntuales de forma limpia (sin respuestas del bot). Puede usarse para borrar una cantidad específica de mensajes (por defecto 1, máximo 15) y a partir de un mensaje en específico (opción avanzada). No se puede usar para borrar mensajes en masa.`,
     usage: '%s clear [amount] --id [messageID]',
 
     run: async (message) => {
@@ -30,7 +30,7 @@ module.exports = {
             } 
 
             if (amount < 1) amount = 1;
-            if (amount > 5) amount = 5;
+            if (amount > 15) amount = 15;
 
 
             if (targetMessageID) {
