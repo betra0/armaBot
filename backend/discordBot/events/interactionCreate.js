@@ -15,7 +15,6 @@ const craftyDispatcher = new Agent({
 module.exports = {
     name: 'interactionCreate',
     async execute(interaction, client, redis) {
-        // test Para ver si llega la interacción
         console.log('Interacción recibida:' );
         console.log('Tipo de interacción:', interaction.type);
         console.log('ID de interacción:', interaction.id);
@@ -23,6 +22,8 @@ module.exports = {
         try {
             
         if (!interaction.isButton()) return;
+
+        if (interaction.user.bot) return;
 
         let data = await getSimpleRedisJson({
             redis: redis,
@@ -32,7 +33,32 @@ module.exports = {
 
         // boton de verificación
         if (data && data.btnId && interaction.customId === data.btnId) {
-        console.log('*****Botón de verificación presionado por:', interaction.user.tag);
+            console.log('*****Botón de verificación presionado por:', interaction.user.tag);
+            const minHours = 12;
+            const timeCreatedMs = interaction.user.createdTimestamp;
+            const minMs = minHours * 60 * 60 * 1000;
+            if (Date.now() - timeCreatedMs < minMs) {
+                await interaction.reply({
+                    content: `❌ Tu cuenta debe tener al menos ${minHours} horas de antigüedad para poder verificarte en este servidor.`,
+                    flags: MessageFlags.Ephemeral
+                });
+                console.log('Verificación fallida: cuenta demasiado nueva para', interaction.user.tag);
+                return;
+            }
+            const joinedAt = interaction.member.joinedTimestamp;
+            const MinJoinTimeMs = 1 * 60 *1000; // 1 minuto
+            if (Date.now() - joinedAt < MinJoinTimeMs) {
+                await interaction.reply({
+                    content: `❌ Debes estar en el servidor al menos ${MinJoinTimeMs / (60 * 1000)} minutos antes de poder verificarte.`,
+                    flags: MessageFlags.Ephemeral
+                });
+                console.log('Verificación fallida: usuario recién unido', interaction.user.tag);
+                return;
+            }
+
+        
+
+
         
             const role = interaction.guild.roles.cache.get(data.roleToAssign);
 
