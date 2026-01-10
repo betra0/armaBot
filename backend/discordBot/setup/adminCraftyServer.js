@@ -39,6 +39,8 @@ module.exports = {
             btnRebootId: null,
             craftyToken: null,
             serverEndpoint: null,
+            backupId: null,
+
         };
         const respuestasArray = [
             {
@@ -71,9 +73,14 @@ module.exports = {
                 descripcion:'Por favor, mencione el rol QUE TENDRA AUTORIZACIONPARA HACER REBOOT, BACKUP Y REINICIAR EL SERVIDOR CRAFTY, El boton start estara disponible para todos los usuarios, Responda mencionando el rol (obligatorio).',
                 color:'#0099ff',
             },
+            {
+                title:'Paso 6: Backup ID',
+                descripcion:'Por favor, ingrese el ID de la copia de seguridad que desea utilizar. Responda con el ID o "ninguno" o "no" para omitir este paso.',
+                color:'#0099ff',
+            }
         ]
 
-        const cantidadPasos = 5;
+        const cantidadPasos = 6;
 
         let pasoActual = await getContext(); // por defecto 0
         let actualconfig = configDef
@@ -145,6 +152,11 @@ module.exports = {
             }else{
                 // no se menciono rol, repetir paso
                 pasoActual--;
+            }
+        }else if (pasoActual === 6){
+            // paso 6: backup id
+            if (respuestaUsuario && respuestaUsuario.toLowerCase() !== 'no' && respuestaUsuario.toLowerCase() !== 'ninguno'){
+                actualconfig.backupId = respuestaUsuario;
             }
         }
         pasoActual++;

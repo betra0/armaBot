@@ -127,13 +127,27 @@ module.exports = {
                         ephemeral: true,
                     });
                 }
-                const action = interaction.customId === data.btnStopId ? 'stop_server' : interaction.customId === data.btnRebootId ? 'restart_server' : 'backup_server/acf7cefa-fb3d-4b01-85ff-a3b5ee822173';
-                // deuda técnica: el id del backup está hardcodeado, debería obtenerse dinámicamente
+                const action = interaction.customId === data.btnStopId ? 'stop_server' : interaction.customId === data.btnRebootId ? 'restart_server' : 'backup_server';
+                let actionurl = action;
+                if (action === "backup_server")
+                {
+                    if(!data.backupId || data.backupId === '' || data.backupId.toLowerCase() === 'no' || data.backupId.toLowerCase() === 'ninguno')
+                    {
+                        await interaction.reply({
+                            content: '❌ No se ha proporcionado un ID de copia de seguridad válido para realizar la acción de copia de seguridad.',
+                            ephemeral: true,
+                        });
+                        return;
+                    }
+                    actionurl = `backup_server/${data.backupId}`;
+                }
+                    
+  
                 try {
-                    await sendCraftyAction(data.serverEndpoint, data.craftyToken, action);
+                    await sendCraftyAction(data.serverEndpoint, data.craftyToken, actionurl);
 
                     await interaction.reply({
-                        content: '⏹️ El servidor se está deteniendo, reiniciando o haciendo una copia de seguridad.',
+                        content: '⏹️ Has ejecutado la siguiente acción en el servidor: ' + action.replace('_', ' ') + '.',
                         ephemeral: true,
                     });
                     await setRegisterAction({ redis, interaction, userName: interaction.user.tag, action: action });
