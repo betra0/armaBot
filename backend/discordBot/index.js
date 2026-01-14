@@ -7,10 +7,8 @@ require('dotenv').config({ path: '../../.env' });
 
 
 const { reloadStatusCraftyTask } = require('./task/reloadStatusCrafty');
-const { retryEditChannelTitle } = require('./services/channelTitleRetry');
 const { initRedisSubscriber } = require('./redis/subscriber');
-
-
+const { changeAmountMembers } = require('./handlers/changeAmountMembers.handler');
 
 
 
@@ -36,42 +34,19 @@ const token = process.env.BOTDSTOKEN
 client.on('ready', async () => {
     console.log(`Logged in as ${client.user.tag}`);
 
+    // inicializar eventos de redis subscriber
     initRedisSubscriber(subscriber, redis, client);
 });
 
 
-async function titleMembersCount({ guild }){
-    const memberCount = guild.memberCount;
-    console.log(`Miembros totales obtenidos: ${memberCount}`);
-    return `Miembros: ${memberCount}`
-}
-async function changeAmountMembers({member}){
-    const guild = member.guild;
-    const data = await getSimpleRedisJson({ redis: redis, type: 'voiceMembersCount', UID: `${guild.id}` })
-    if (data && data.channelID){
-        try{
-            await retryEditChannelTitle({
-                channelID: data.channelID,
-                redisClient: redis,
-                attempt: 1,
-                maxAttempts: 3,
-                titletextFunc: async ()=> await titleMembersCount({ guild: member.guild }),
-                client: client
-            });
-        }catch(e){
-            console.log('error al cambiar el nombre del canal de miembros', e)
-        }
-        
-    }
 
-}
 client.on(Events.GuildMemberAdd, async member => {
     console.log('se a unido un nuevo miembro al servidor')
-    changeAmountMembers({member})
+    changeAmountMembers(member, redis, client);
 });
 client.on(Events.GuildMemberRemove, async member => {
     console.log('un miembro a salido del servidor')
-    changeAmountMembers({member})  
+    changeAmountMembers(member, redis, client);  
 });
 
 // Cargar Eventos 
