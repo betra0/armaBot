@@ -4,6 +4,12 @@ const { MessageFlags } = require('discord.js');
 const { getListRedisIpSubcription, getInfoAdressForRedis, getSimpleRedisJson } = require('../services/getFromRedis');
 const { generateMessageEmbed } = require('../services/embedMessageGenerator');
 const { saveSimpleRedisJson } = require('../services/insertInRedis');
+const {
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  ActionRowBuilder
+} = require('discord.js');
 
 
 const craftyDispatcher = new Agent({
@@ -18,10 +24,14 @@ module.exports = {
         console.log('Interacción recibida:' );
         console.log('Tipo de interacción:', interaction.type);
         console.log('ID de interacción:', interaction.id);
+        try {
+            console.log('idCustom:', interaction.customId);
+        } catch (e) {
+            console.log('No es una interacción con customId');
+        }
 
         try {
             
-        if (!interaction.isButton()) return;
 
         if (interaction.user.bot) return;
 
@@ -34,65 +44,71 @@ module.exports = {
         // boton de verificación
         if (data && data.btnId && interaction.customId === data.btnId) {
             console.log('*****Botón de verificación presionado por:', interaction.user.tag);
-            const minHours = 12;
+            const minHoursArray = [4, 24*14]; // opciones de horas mínimas
             const timeCreatedMs = interaction.user.createdTimestamp;
-            const minMs = minHours * 60 * 60 * 1000;
-            if (Date.now() - timeCreatedMs < minMs) {
+            const minMsArray = minHoursArray.map(hours => hours * 60 * 60 * 1000);
+            let [min, max] = minMsArray;
+            if (Date.now() - timeCreatedMs < max) {
+                if (Date.now() - timeCreatedMs > min) {
+                    // se manda el modal de verificación adicional
+                    console.log('se requiere verificación adicional para', interaction.user.tag, "cuenta muy nueva:", (Date.now() - timeCreatedMs)/(60*60*1000), "horas");
+                    const modal = await createVerifyModal();
+                    await interaction.showModal(modal);
+                    return;
+                }
                 await interaction.reply({
-                    content: `❌ Tu cuenta debe tener al menos ${minHours} horas de antigüedad para poder verificarte en este servidor.`,
+                    content: `❌ Tu cuenta debe tener al menos ${minHoursArray[0]} horas de antigüedad para poder verificarte en este servidor.`,
                     flags: MessageFlags.Ephemeral
                 });
                 console.log('Verificación fallida: cuenta demasiado nueva para', interaction.user.tag);
                 return;
             }
             const joinedAt = interaction.member.joinedTimestamp;
-            const MinJoinTimeMs = 1 * 60 *1000; // 1 minuto
-            if (Date.now() - joinedAt < MinJoinTimeMs) {
+            const MinJoinTimeMsRango = [1000*6, 23*1000]; // 6 segundos a 23 segundos
+            if (Date.now() - joinedAt < MinJoinTimeMsRango[1]) {
+                if (Date.now() - joinedAt > MinJoinTimeMsRango[0]) {
+                    // se manda el modal de verificación adicional
+                    console.log('se requiere verificación adicional para', interaction.user.tag, "usuario recién unido:", (Date.now() - joinedAt)/1000, "segundos");
+                    const modal = await createVerifyModal();
+                    await interaction.showModal(modal);
+                    return;
+                }
                 await interaction.reply({
-                    content: `❌ Debes estar en el servidor al menos ${MinJoinTimeMs / (60 * 1000)} minutos antes de poder verificarte.`,
+                    content: `❌ No se pudo verificar tu cuenta, intenta de nuevo más tarde.`,
                     flags: MessageFlags.Ephemeral
                 });
-                console.log('Verificación fallida: usuario recién unido', interaction.user.tag);
+                console.log('Verificación fallida: usuario recién unido', interaction.user.tag, "tiempo en servidor:", (Date.now() - joinedAt)/1000, "segundos");
                 return;
             }
 
         
 
-
+            //const modal = await createVerifyModal();
+            //await interaction.showModal(modal);
         
-            const role = interaction.guild.roles.cache.get(data.roleToAssign);
-
-            if (role) {
-                await interaction.member.roles.add(role);
-                const embeds = [];
-                let destacados='';
-                if (data.importantChannels && data.importantChannels.length > 0) {
-                    destacados =` y a canales recurrentes como: ` + data.importantChannels.map(channelId => `<#${channelId}>`).join(' ');
-
-                }
-                embeds.push(generateMessageEmbed(
-                        {
-                            title:'¡Verificación exitosa!',
-                            descripcion:` Ahora tienes acceso al servidor${destacados}.` ,
-                            color:'#00ff00',
-                        }
-                    ));
-                await interaction.reply({
-                    content: '',
-                    embeds: embeds,
-                    flags: MessageFlags.Ephemeral
-                });
-                console.log('Rol de verificación asignado correctamente a', interaction.user.tag);
+            // si no se requiere modal, asignar rol directamente
+            await acceptUserToServer(interaction, data, redis);
+            return;
+        }
+        // Modal de verificación adicional
+        if (interaction.customId === 'verifyRealUserModal'){
+            console.log('*****Modal de verificación adicional enviado por:', interaction.user.tag);
+            const retoKey = interaction.fields.components[0].components[0].customId.split(':')[1];
+            const userAnswer = interaction.fields.components[0].components[0].value.trim();
+            const correctAnswer = retosVerify[retoKey].answer;
+            if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
+                // respuesta correcta
+                await acceptUserToServer(interaction, data, redis);
             } else {
+                // respuesta incorrecta
                 await interaction.reply({
-                    content: 'Error: El rol de verificación no existe.',
+                    content: '❌ Respuesta incorrecta. No se te ha asignado el rol de verificación.',
                     flags: MessageFlags.Ephemeral
                 });
+                console.log('Verificación adicional fallida para', interaction.user.tag);
             }
             return;
         }
-
-
 
         data = await getSimpleRedisJson({
             redis: redis,
@@ -229,4 +245,71 @@ async function setRegisterAction({redis, interaction, userName = "user", action=
 
      });
 
+}
+const retosVerify = {
+  1: { label: 'Escribe la palabra VERIFICAR', answer: 'VERIFICAR', example: 'VERIFICAR' },
+  2: { label: '¿Cuánto es 5 + 3?', answer: '8', example: '8' },
+  3: { label: 'Escribe la palabra VALIDAR', answer: 'VALIDAR', example: 'VALIDAR' },
+  4: { label: '¿Cuánto es 10 + 4?', answer: '14', example: '14' },
+  5: { label: 'Escribe la palabra BOT', answer: 'BOT', example: 'BOT' },
+};
+
+async function createVerifyModal() {
+
+    const KeyReto = Math.floor(Math.random() * Object.keys(retosVerify).length) + 1;
+    const reto = retosVerify[KeyReto];
+ 
+    const modal = new ModalBuilder()
+        .setCustomId('verifyRealUserModal')
+        .setTitle('Verificación de usuario')
+
+    // Crear un campo de entrada de texto
+    const checkInput = new TextInputBuilder()
+        .setCustomId(`RETO:${KeyReto}`)
+        .setLabel(reto.label)
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder(`Ejemplo: ${reto.example}`)
+        .setRequired(true);
+
+    
+    const firstActionRow = new ActionRowBuilder().addComponents(checkInput);
+
+    // Agregar la fila de acción a la modal
+    modal.addComponents(firstActionRow);
+
+    return modal;
+    
+}
+
+async function acceptUserToServer(interaction, data, redis) 
+{
+    const role = interaction.guild.roles.cache.get(data.roleToAssign);
+
+            if (role) {
+                await interaction.member.roles.add(role);
+                const embeds = [];
+                let destacados='';
+                if (data.importantChannels && data.importantChannels.length > 0) {
+                    destacados =` y a canales recurrentes como: ` + data.importantChannels.map(channelId => `<#${channelId}>`).join(' ');
+
+                }
+                embeds.push(generateMessageEmbed(
+                        {
+                            title:'¡Verificación exitosa!',
+                            descripcion:` Ahora tienes acceso al servidor${destacados}.` ,
+                            color:'#00ff00',
+                        }
+                    ));
+                await interaction.reply({
+                    content: '',
+                    embeds: embeds,
+                    flags: MessageFlags.Ephemeral
+                });
+                console.log('Rol de verificación asignado correctamente a', interaction.user.tag);
+            } else {
+                await interaction.reply({
+                    content: 'Error: El rol de verificación no existe.',
+                    flags: MessageFlags.Ephemeral
+                });
+            }
 }
