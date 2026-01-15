@@ -17,7 +17,15 @@ const craftyDispatcher = new Agent({
         rejectUnauthorized: false, // cert autofirmado de Crafty
     },
 });
-
+const initContadorSi= async(redis, userId) =>{
+    const key = `verifyAttempts:${userId}`;
+    await redis.set(key, 0, 'NX', 'EX', 60 * 30);
+} 
+const incrementarContador = async(redis, userId) => {
+    const key = `verifyAttempts:${userId}`;
+    await redis.set(key, -1, 'NX', 'EX', 60 * 30);
+    return await redis.incr(key);
+}
 module.exports = {
     name: 'interactionCreate',
     async execute(interaction, client, redis) {
@@ -44,11 +52,31 @@ module.exports = {
         // boton de verificación
         if (data && data.btnId && interaction.customId === data.btnId) {
             console.log('*****Botón de verificación presionado por:', interaction.user.tag);
+            const raw = await redis.get(`verifyAttempts:${interaction.user.id}`);
+            let intento = raw === null ? -1 : Number(raw);
+
+            if (intento >= 3) {
+                await interaction.reply({
+                    content: `❌ Has superado el número máximo de intentos de verificación. Por favor intentelo más tarde.`,
+                    flags: MessageFlags.Ephemeral
+                });
+                console.log('Verificación bloqueada por demasiados intentos para', interaction.user.tag);
+                return;
+            }else if (intento >= 0) {
+                // directo a modal
+                console.log('es nesesario checkear al user:', interaction.user.tag);
+                const modal = await createVerifyModal();
+                await interaction.showModal(modal);
+                return;
+            }
+            
             const minHoursArray = [4, 24*14]; // opciones de horas mínimas
             const timeCreatedMs = interaction.user.createdTimestamp;
             const minMsArray = minHoursArray.map(hours => hours * 60 * 60 * 1000);
             let [min, max] = minMsArray;
             if (Date.now() - timeCreatedMs < max) {
+                await initContadorSi(redis, interaction.user.id);
+
                 if (Date.now() - timeCreatedMs > min) {
                     // se manda el modal de verificación adicional
                     console.log('se requiere verificación adicional para', interaction.user.tag, "cuenta muy nueva:", (Date.now() - timeCreatedMs)/(60*60*1000), "horas");
@@ -64,8 +92,10 @@ module.exports = {
                 return;
             }
             const joinedAt = interaction.member.joinedTimestamp;
-            const MinJoinTimeMsRango = [1000*6, 23*1000]; // 6 segundos a 23 segundos
+            const MinJoinTimeMsRango = [1000*7, 30*1000]; // 7 segundos a 30 segundos
             if (Date.now() - joinedAt < MinJoinTimeMsRango[1]) {
+                // o se manda a modal o se ignora, pero si o si es sopechoso
+                    await initContadorSi(redis, interaction.user.id);
                 if (Date.now() - joinedAt > MinJoinTimeMsRango[0]) {
                     // se manda el modal de verificación adicional
                     console.log('se requiere verificación adicional para', interaction.user.tag, "usuario recién unido:", (Date.now() - joinedAt)/1000, "segundos");
@@ -92,20 +122,29 @@ module.exports = {
         }
         // Modal de verificación adicional
         if (interaction.customId === 'verifyRealUserModal'){
-            console.log('*****Modal de verificación adicional enviado por:', interaction.user.tag);
+            if (!interaction.isModalSubmit()) {
+                console.log('Interacción no es un envío de modal:', interaction.user.tag);
+                return;
+            }
+            const userId = interaction.user.id;
+            const userTag = interaction.user.tag;
+            console.log('*****Procesando modal de verificación adicional para:', userTag);
             const retoKey = interaction.fields.components[0].components[0].customId.split(':')[1];
             const userAnswer = interaction.fields.components[0].components[0].value.trim();
             const correctAnswer = retosVerify[retoKey].answer;
             if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
                 // respuesta correcta
                 await acceptUserToServer(interaction, data, redis);
+                await redis.del(`verifyAttempts:${userId}`);
+                console.log('Verificación adicional exitosa para', userTag);
             } else {
-                // respuesta incorrecta
+                // respuesta incorrectao
+                const intentos = await incrementarContador(redis, userId);
                 await interaction.reply({
                     content: '❌ Respuesta incorrecta. No se te ha asignado el rol de verificación.',
                     flags: MessageFlags.Ephemeral
                 });
-                console.log('Verificación adicional fallida para', interaction.user.tag);
+                console.log('Verificación adicional fallida para', userTag);
             }
             return;
         }
@@ -182,7 +221,7 @@ module.exports = {
 
         } catch (error) {
             console.error(error);
-            await interaction.reply({ content: 'There was an error while executing this interaction!', ephemeral: true });
+            console.log('paso por catch general de interactionCreate');
         }
     },
 };
@@ -283,6 +322,7 @@ async function createVerifyModal() {
 
 async function acceptUserToServer(interaction, data, redis) 
 {
+    const userTag = interaction.user.tag;   
     const role = interaction.guild.roles.cache.get(data.roleToAssign);
 
             if (role) {
@@ -305,7 +345,7 @@ async function acceptUserToServer(interaction, data, redis)
                     embeds: embeds,
                     flags: MessageFlags.Ephemeral
                 });
-                console.log('Rol de verificación asignado correctamente a', interaction.user.tag);
+                console.log('Rol de verificación asignado correctamente a', userTag);
             } else {
                 await interaction.reply({
                     content: 'Error: El rol de verificación no existe.',
