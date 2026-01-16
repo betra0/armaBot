@@ -69,7 +69,7 @@ module.exports = {
                 return;
             }
             
-            const minHoursArray = [7, 24*9*3]; // opciones de horas mínimas
+            const minHoursArray = [7, 24*8*7]; // opciones de horas mínimas, de 7 horas a 7 semanas
             const timeCreatedMs = interaction.user.createdTimestamp;
             const minMsArray = minHoursArray.map(hours => hours * 60 * 60 * 1000);
             let [min, max] = minMsArray;
@@ -109,6 +109,8 @@ module.exports = {
                 console.log(prefixLog + 'Verificación fallida: usuario recién unido', interaction.user.tag, "tiempo en servidor:", (Date.now() - joinedAt)/1000, "segundos");
                 return;
             }
+
+            console.log(prefixLog + 'Stats' + interaction.user.tag + ': tiempo de creacion de cuenta ' + ((Date.now() - timeCreatedMs)/(60*60*1000)).toFixed(2) + ' horas, tiempo en servidor ' + ((Date.now() - joinedAt)/1000).toFixed(2) + ' segundos.');
 
         
 
