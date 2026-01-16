@@ -26,16 +26,15 @@ const incrementarContador = async(redis, userId) => {
     await redis.set(key, -1, 'NX', 'EX', 60 * 30);
     return await redis.incr(key);
 }
+const prefixLog = '[interactionCreate] ';
 module.exports = {
     name: 'interactionCreate',
     async execute(interaction, client, redis) {
-        console.log('Interacción recibida:' );
-        console.log('Tipo de interacción:', interaction.type);
-        console.log('ID de interacción:', interaction.id);
+        console.log(prefixLog + 'iteracion de user;', interaction.user.tag);
         try {
-            console.log('idCustom:', interaction.customId);
+            console.log(prefixLog + 'idCustom:', interaction.customId);
         } catch (e) {
-            console.log('No es una interacción con customId');
+            console.log(prefixLog + 'No es una interacción con customId');
         }
 
         try {
@@ -51,26 +50,26 @@ module.exports = {
 
         // boton de verificación
         if (data && data.btnId && interaction.customId === data.btnId) {
-            console.log('*****Botón de verificación presionado por:', interaction.user.tag);
+            console.log(prefixLog + '**Botón de verificación presionado por:', interaction.user.tag);
             const raw = await redis.get(`verifyAttempts:${interaction.user.id}`);
             let intento = raw === null ? -1 : Number(raw);
-
+ 
             if (intento >= 3) {
                 await interaction.reply({
                     content: `❌ Has superado el número máximo de intentos de verificación. Por favor intentelo más tarde.`,
                     flags: MessageFlags.Ephemeral
                 });
-                console.log('Verificación bloqueada por demasiados intentos para', interaction.user.tag);
+                console.log(prefixLog + 'Verificación bloqueada por demasiados intentos para', interaction.user.tag);
                 return;
             }else if (intento >= 0) {
                 // directo a modal
-                console.log('es nesesario checkear al user:', interaction.user.tag);
+                console.log(prefixLog + 'es nesesario checkear al user:', interaction.user.tag);
                 const modal = await createVerifyModal();
                 await interaction.showModal(modal);
                 return;
             }
             
-            const minHoursArray = [4, 24*14]; // opciones de horas mínimas
+            const minHoursArray = [7, 24*9*3]; // opciones de horas mínimas
             const timeCreatedMs = interaction.user.createdTimestamp;
             const minMsArray = minHoursArray.map(hours => hours * 60 * 60 * 1000);
             let [min, max] = minMsArray;
@@ -79,7 +78,7 @@ module.exports = {
 
                 if (Date.now() - timeCreatedMs > min) {
                     // se manda el modal de verificación adicional
-                    console.log('se requiere verificación adicional para', interaction.user.tag, "cuenta muy nueva:", (Date.now() - timeCreatedMs)/(60*60*1000), "horas");
+                    console.log(prefixLog + 'se requiere verificación adicional para', interaction.user.tag, "cuenta muy nueva:", (Date.now() - timeCreatedMs)/(60*60*1000), "horas");
                     const modal = await createVerifyModal();
                     await interaction.showModal(modal);
                     return;
@@ -88,7 +87,7 @@ module.exports = {
                     content: `❌ Tu cuenta debe tener al menos ${minHoursArray[0]} horas de antigüedad para poder verificarte en este servidor.`,
                     flags: MessageFlags.Ephemeral
                 });
-                console.log('Verificación fallida: cuenta demasiado nueva para', interaction.user.tag);
+                console.log(prefixLog + 'Verificación fallida: cuenta demasiado nueva para', interaction.user.tag);
                 return;
             }
             const joinedAt = interaction.member.joinedTimestamp;
@@ -98,7 +97,7 @@ module.exports = {
                     await initContadorSi(redis, interaction.user.id);
                 if (Date.now() - joinedAt > MinJoinTimeMsRango[0]) {
                     // se manda el modal de verificación adicional
-                    console.log('se requiere verificación adicional para', interaction.user.tag, "usuario recién unido:", (Date.now() - joinedAt)/1000, "segundos");
+                    console.log(prefixLog + 'se requiere verificación adicional para', interaction.user.tag, "usuario recién unido:", (Date.now() - joinedAt)/1000, "segundos");
                     const modal = await createVerifyModal();
                     await interaction.showModal(modal);
                     return;
@@ -107,7 +106,7 @@ module.exports = {
                     content: `❌ No se pudo verificar tu cuenta, intenta de nuevo más tarde.`,
                     flags: MessageFlags.Ephemeral
                 });
-                console.log('Verificación fallida: usuario recién unido', interaction.user.tag, "tiempo en servidor:", (Date.now() - joinedAt)/1000, "segundos");
+                console.log(prefixLog + 'Verificación fallida: usuario recién unido', interaction.user.tag, "tiempo en servidor:", (Date.now() - joinedAt)/1000, "segundos");
                 return;
             }
 
@@ -123,12 +122,12 @@ module.exports = {
         // Modal de verificación adicional
         if (interaction.customId === 'verifyRealUserModal'){
             if (!interaction.isModalSubmit()) {
-                console.log('Interacción no es un envío de modal:', interaction.user.tag);
+                console.log(prefixLog + 'Interacción no es un envío de modal:', interaction.user.tag);
                 return;
             }
             const userId = interaction.user.id;
             const userTag = interaction.user.tag;
-            console.log('*****Procesando modal de verificación adicional para:', userTag);
+            console.log(prefixLog + '*****Procesando modal de verificación adicional para:', userTag);
             const retoKey = interaction.fields.components[0].components[0].customId.split(':')[1];
             const userAnswer = interaction.fields.components[0].components[0].value.trim();
             const correctAnswer = retosVerify[retoKey].answer;
@@ -136,7 +135,7 @@ module.exports = {
                 // respuesta correcta
                 await acceptUserToServer(interaction, data, redis);
                 await redis.del(`verifyAttempts:${userId}`);
-                console.log('Verificación adicional exitosa para', userTag);
+                console.log(prefixLog + 'Verificación adicional exitosa para', userTag);
             } else {
                 // respuesta incorrectao
                 const intentos = await incrementarContador(redis, userId);
@@ -144,7 +143,7 @@ module.exports = {
                     content: '❌ Respuesta incorrecta. No se te ha asignado el rol de verificación.',
                     flags: MessageFlags.Ephemeral
                 });
-                console.log('Verificación adicional fallida para', userTag);
+                console.log(prefixLog + 'Verificación adicional fallida para', userTag);
             }
             return;
         }
@@ -157,7 +156,7 @@ module.exports = {
 
         // botones de administración del servidor crafty
         if (data && (data.btnStartId === interaction.customId || data.btnStopId === interaction.customId || data.btnRebootId === interaction.customId || data.btnBackUpId === interaction.customId)) {
-            console.log('*****Botón de administración presionado por:', interaction.user.tag);
+            console.log(prefixLog + '**Botón de administración presionado por:', interaction.user.tag);
             if (interaction.customId === data.btnStartId) {
                 try {
                     await sendCraftyAction(data.serverEndpoint, data.craftyToken, 'start_server');
@@ -221,7 +220,8 @@ module.exports = {
 
         } catch (error) {
             console.error(error);
-            console.log('paso por catch general de interactionCreate');
+            console.log('')
+            console.log(prefixLog + 'Error al procesar la interacción');
         }
     },
 };
@@ -345,7 +345,7 @@ async function acceptUserToServer(interaction, data, redis)
                     embeds: embeds,
                     flags: MessageFlags.Ephemeral
                 });
-                console.log('Rol de verificación asignado correctamente a', userTag);
+                console.log(prefixLog + 'Rol de verificación asignado correctamente a', userTag);
             } else {
                 await interaction.reply({
                     content: 'Error: El rol de verificación no existe.',
