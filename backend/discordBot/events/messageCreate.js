@@ -87,6 +87,10 @@ const handlerReqireCommand = async (carpeta, arg, message, redis)=>{
     const command = require(`../${carpeta}/${arg}`)
     command.run(message, redis)
   }catch(e){
+    if(e.code === 'MODULE_NOT_FOUND'){
+        message.reply(`Comando no encontrado en ${carpeta}: ${arg} \n usa %s --help o %--help para ver la lista de comandos disponibles.`);
+        return
+    }
     console.log(e)
   }
 
