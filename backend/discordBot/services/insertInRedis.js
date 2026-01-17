@@ -26,8 +26,13 @@ const insertAdressTofetcher = async ({adress, redis})=>{
     await redis.sadd(`ipsTofech`, adress)
 }
 
-
-
+const saveInfoAdressinRedis = async ({ adress, infoAdress, redis})=>{
+    // guardar la info en adressInfoN
+    if (!adress || !infoAdress || !redis) {
+        throw new Error('Missing required parameters: adress, infoAdress or redis');
+    }
+    await redis.hset(`adressInfoN`, adress, JSON.stringify(infoAdress))
+}
 const saveSimpleRedisJson = async ({ redis, type = 'defectData', UID, json }) => {
   if (!redis) {
     throw new Error('Missing required parameter: redis client');
@@ -45,4 +50,5 @@ module.exports = {
     saveRedisNewMessageSubcription,
     insertAdressTofetcher,
     saveSimpleRedisJson,
+    saveInfoAdressinRedis
 }

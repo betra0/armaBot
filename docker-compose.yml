@@ -28,20 +28,6 @@ services:
      networks:
        - back-network
   
-  fetcher:
-    build:
-      context: ./backend/fetcher
-      dockerfile: dockerfile
-    restart: always
-    networks:
-      - back-network
-    environment:
-      - REDISHOST=redis
-      - REDISPORT=6379
-      - REFRESH_INTERVAL=${REFRESH_INTERVAL}
-    depends_on:
-      - redis
-      - ds
 
     
     

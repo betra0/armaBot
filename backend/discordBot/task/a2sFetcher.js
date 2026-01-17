@@ -1,0 +1,163 @@
+const {getInfoAdressForRedisNoFormat } = require("../services/getFromRedis");
+const { info, players } = require('source-server-query');
+const { saveInfoAdressinRedis } = require("../services/insertInRedis");
+
+
+async function getInfoAdressFromA2s(ip, port) {
+  try {
+    console.log(`Fetching A2S info for ${ip}:${port}`);
+    const serverInfo = await info(ip, port, 8000);
+    const serverPlayers = await players(ip, port, 8000);
+
+    // Convertir los BigInt que no necesitas a string
+    const sanitizedInfo = {
+      ...serverInfo,
+      steamid: serverInfo.steamid?.toString(),
+      gameid: serverInfo.gameid?.toString(),
+	  ip: ip
+    };
+
+    return {
+      info: sanitizedInfo,
+      players: serverPlayers,
+      updatedInfo: new Date().toISOString(),
+      status: true,
+      errorType: null
+    };
+
+  } catch (err) {
+    let errorType = 'unknown';
+
+    if (err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED') {
+      errorType = 'server_offline';
+    }
+
+    if (err.code === 'ENETUNREACH' || err.code === 'EAI_AGAIN') {
+      errorType = 'network_error';
+    }
+
+    return {
+      info: {},
+      players: [],
+      updatedInfo: null,
+      status: false,
+      errorType
+    };
+  }
+}
+
+async function getOldDataAdress(redis, key){
+    return getInfoAdressForRedisNoFormat({ adress: key, redis })
+}
+async function logicAdressInfo(ip, port, redis){
+	key = `${ip}:${port}`;
+    const serverData = await getInfoAdressFromA2s(ip, port);
+	console.log(`data obtenida : `, serverData);
+    const olddata = await getOldDataAdress(redis, key); 
+
+
+	// si no hay info en serverData
+	if (!serverData.status) {
+		if (olddata && olddata.status !== false) {
+			// pero si hay olddata y el status no es false
+			await saveInfoAdressinRedis({ adress: key, infoAdress: serverData, redis });
+			callRedisChangeInfo(redis, key);
+			callRedisChangeamountPlayers(redis, key);
+
+		}
+		return;
+	}
+	// si o si tengo data en serverData
+    // NO hay oldata 
+    if (!olddata|| (olddata &&  !olddata.status)){
+		await saveInfoAdressinRedis({ adress: key, infoAdress: serverData, redis });
+        callRedisChangeamountPlayers(redis, key);
+        callRedisChangeInfo(redis, key);
+        return
+    }
+    // si IF no hay cambios en data 
+	if (compareAdressInfoSI(olddata, serverData)) return;
+	else {
+		await saveInfoAdressinRedis({ adress: key, infoAdress: serverData, redis });
+		callRedisChangeInfo(redis, key);
+
+		if (
+		  olddata.status !== serverData.status ||
+		  (olddata.info?.players ?? 0) !== (serverData.info?.players ?? 0) ||
+		  (olddata.info?.max_players ?? 0) !== (serverData.info?.max_players ?? 0)
+		){
+		  callRedisChangeamountPlayers(redis, key);
+		}
+		return;
+	}
+
+
+}
+function deepCompare(obj1, obj2, options = {}) {
+  const { ignoreKeys = [] } = options;
+
+  const keys1 = Object.keys(obj1).filter(k => !ignoreKeys.includes(k));
+  const keys2 = Object.keys(obj2).filter(k => !ignoreKeys.includes(k));
+
+  if (keys1.length !== keys2.length) return false;
+
+  for (const key of keys1) {
+    if (obj1[key] !== obj2[key]) return false;
+  }
+
+  return true;
+}
+
+// Función mínima para comparar listas de jugadores por nombre
+function compareNamesInList(list1, list2) {
+  if (list1.length !== list2.length) return false;
+
+  const names1 = list1.map(p => p.name).sort();
+  const names2 = list2.map(p => p.name).sort();
+
+  for (let i = 0; i < names1.length; i++) {
+    if (names1[i] !== names2[i]) return false;
+  }
+
+  return true;
+}
+function compareAdressInfoSI(dataOld, dataNew) {
+  const a = deepCompare(
+    dataOld.info,
+    dataNew.info,
+    { ignoreKeys: ["ping", "keywords"] }
+  );
+
+  const b = compareNamesInList(
+    dataOld.players,
+    dataNew.players
+  );
+
+  const c = (dataOld.status ?? false) === (dataNew.status ?? false);
+
+  const d =  (dataOld.errorType ?? null) === (dataNew.errorType ?? null);
+
+  return a && b && c && d;
+}
+
+async function callRedisChangeamountPlayers(redis, adress) {
+    redis.publish('adressChangePlayerCount', adress);
+}
+async function callRedisChangeInfo(redis, adress) {
+    redis.publish('adressChangeInfo', adress);
+}
+async function a2sFetcherMain(redis) {
+    adreesToFetch = await redis.smembers('ipsTofech');
+	console.log("A2S FETCHER - Fetching info for addresses: ", adreesToFetch);
+
+    for (const adress of adreesToFetch) {
+        const [ip, portStr] = adress.split(':');
+        const port = parseInt(portStr, 10);
+		await logicAdressInfo(ip, port, redis);
+    }
+    
+}
+
+module.exports = {
+	a2sFetcherMain
+}

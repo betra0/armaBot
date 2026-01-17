@@ -18,7 +18,7 @@ const getInfoAdressForRedis = async ({ adress=null, redis})=>{
     if (!adress){
         throw new Error('No se han proporcionado los datos necesarios.');
     }
-    let infoAdress = await redis.hget(`adressInfo`, adress)
+    let infoAdress = await redis.hget(`adressInfoN`, adress)
     infoAdress = infoAdress ? JSON.parse(infoAdress) : null
     let imgsAdress = await redis.hget(`adressImgs`, adress)
     imgsAdress = imgsAdress ? JSON.parse(imgsAdress) : null
@@ -32,6 +32,21 @@ const getInfoAdressForRedis = async ({ adress=null, redis})=>{
         infoAdress = infoServerFormatted({ infoAdress })
     }
     return infoAdress
+
+}
+const getInfoAdressForRedisNoFormat = async ({ adress=null, redis})=>{ 
+    if (!adress){
+        throw new Error('No se han proporcionado los datos necesarios.');
+    }
+    let infoAdress = await redis.hget(`adressInfoN`, adress)
+    infoAdress = infoAdress ? JSON.parse(infoAdress) : null
+
+
+    // formatear info del adress
+    if (infoAdress){
+        return infoAdress
+    }
+    return null
 
 }
 const getSimpleRedisJson = async ({ redis, type = 'defectData', UID }) => {
@@ -50,5 +65,6 @@ const getSimpleRedisJson = async ({ redis, type = 'defectData', UID }) => {
 module.exports = {
     getListRedisIpSubcription,
     getInfoAdressForRedis,
-    getSimpleRedisJson
+    getSimpleRedisJson,
+    getInfoAdressForRedisNoFormat
 }
