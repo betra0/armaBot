@@ -5,6 +5,7 @@ const { getInfoAdressForRedis, getSimpleRedisJson } = require('../services/getFr
 const { parseArgs } = require('../utils/parseArgs');
 const { ChannelType, PermissionsBitField } = require('discord.js');
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { findAndEditMessageText } = require('../services/findAndEditMessageText');
 
 
 
@@ -35,7 +36,8 @@ module.exports = {
 
         
         const guild = message.guild;
-         const configDef = {
+        const client = message.client;
+        const configDef = {
             title: `Bienvenido a ${guild.name} 👋`,
             welcomeMessage: `Este es el servidor oficial de la comunidad.
 Antes de continuar, tómate un momento para leer la información inicial. Nos ayuda a mantener el orden y una buena convivencia entre todos.`,
@@ -106,6 +108,11 @@ Antes de continuar, tómate un momento para leer la información inicial. Nos ay
                 // eliminar config actual
                 actualconfig = configDef
 
+            }else if (respuestaUsuario && respuestaUsuario.toLowerCase() === 'reparar'){
+                //llamar funcion reparar
+                await reparar(client, actualconfig);
+                embeds.push(generateMessageEmbed({title:'Proceso de Reparacion Completo', descripcion:'Se ha reparado el mensaje de verificacion con la configuracion actual.'})) 
+                cancelado = true;
             }else{
                 // cancelar proceso
                 embeds.push(generateMessageEmbed({title:'Proceso Cancelado', descripcion:'No se realizaron cambios en la configuracion de verificacion de usuario.'}))
@@ -183,7 +190,7 @@ Antes de continuar, tómate un momento para leer la información inicial. Nos ay
             const embedVe=[]
             embedVe.push(generateMessageEmbed(
                 {
-                    title:configDef.title, 
+                    title:actualconfig.title, 
                     descripcion:actualconfig.welcomeMessage,
                     imgUrl:actualconfig.imageUrl,
                     color:'#0099ff',
@@ -222,6 +229,40 @@ Antes de continuar, tómate un momento para leer la información inicial. Nos ay
         
         
         // FUNCIONES AUXILIARES
+        async function reparar(client, config){
+            // funcion momentania para reparar un mal abito de ids
+            const embedVe=[]
+            embedVe.push(generateMessageEmbed(
+                {
+                    title:config.title, 
+                    descripcion:config.welcomeMessage,
+                    imgUrl:config.imageUrl,
+                    color:'#0099ff',
+                }
+            ))
+            embedVe.push(generateMessageEmbed(
+                {
+                    title:`Verificacion de Usuario`,
+                    descripcion:actualconfig.description,
+                    color:'#0800ff',
+                    
+                }
+            ))
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId("verifyUserBtn")
+                    .setLabel('Verificar')
+                    .setEmoji('✅') 
+                    .setStyle(ButtonStyle.Primary)
+            );
+            const body = {
+                content: '',
+                embeds: embedVe,
+                components: [row]
+            }
+            findAndEditMessageText(client, config.channelId, config.messageId, body)
+            
+        }
         
         async function createVerification(guild, config, embeds){
             config.btnId = 'verificacion_btn_' + guild.id + '_' + Date.now()

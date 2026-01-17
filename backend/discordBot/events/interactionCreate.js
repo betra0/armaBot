@@ -49,7 +49,7 @@ module.exports = {
         });
 
         // boton de verificación
-        if (data && data.btnId && interaction.customId === data.btnId) {
+        if (interaction.customId === "verifyUserBtn" || (data && data.btnId && interaction.customId === data.btnId)) {
             console.log(prefixLog + '**Botón de verificación presionado por:', interaction.user.tag);
             const raw = await redis.get(`verifyAttempts:${interaction.user.id}`);
             let intento = raw === null ? -1 : Number(raw);
