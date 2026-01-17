@@ -46,6 +46,7 @@ function parseArgs(input) {
 
 module.exports = {
     description:'crear un mensaje de status del servidor en un canal de texto específico',
+    usage:'--address <ip:port> --title "<nombre del servidor>" [--channel <nombre del canal o #canal>]',
     run: async (message, redis) => {
         const args = parseArgs(message.content);
 
@@ -63,14 +64,14 @@ module.exports = {
             channelName = args[channelIndex + 1];
             args.splice(channelIndex, 2);
         }
-        const adressIndex = args.indexOf('--adress');
+        const adressIndex = args.indexOf('--address');
         // si c.idexOf no encuentra el valor, devuelve -1
         // el if revisa si el valor fue encontrado y si no se encuentra al final del array
         if (adressIndex !== -1 && adressIndex < args.length - 1) {
             adress = args[adressIndex + 1];
             args.splice(adressIndex, 2);
         }else{
-            return message.reply('Debes ingresar una dirección de servidor ejemplo --adress xxx.xxx.xx.xx:xxxx')
+            return message.reply('Debes ingresar una dirección de servidor ejemplo --address xxx.xxx.xx.xx:xxxx')
         }
         
         // buscar seudotitle
