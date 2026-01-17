@@ -33,10 +33,6 @@ module.exports = {
             roleToAdmin: null,
             channelId: null,
             messageId: null,
-            btnStartId: null,
-            btnStopId: null,
-            btnBackUpId: null,
-            btnRebootId: null,
             craftyToken: null,
             serverEndpoint: null,
             backupId: null,
@@ -216,10 +212,10 @@ module.exports = {
         // FUNCIONES AUXILIARES
         
         async function createAdminServer(guild, config, embeds){
-            config.btnStartId = 'start_btn_' + guild.id + '_' + Date.now()
-            config.btnStopId = 'stop_btn_' + guild.id + '_' + Date.now()
-            config.btnBackUpId = 'backup_btn_' + guild.id + '_' + Date.now()
-            config.btnRebootId = 'reboot_btn_' + guild.id + '_' + Date.now()
+            const btnStartId = "startServerCraftyBtn"
+            const btnStopId = 'stopServerCraftyBtn'
+            const btnBackUpId = 'backupServerCraftyBtn'
+            const btnRebootId = 'rebootServerCraftyBtn'
 
             // crear canal de texto
             const permisos=[
@@ -242,19 +238,19 @@ module.exports = {
 
             const row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
-                    .setCustomId(config.btnStartId)
+                    .setCustomId(btnStartId)
                     .setLabel('Iniciar')
                     .setStyle(ButtonStyle.Primary),
                 new ButtonBuilder()
-                    .setCustomId(config.btnStopId)
+                    .setCustomId(btnStopId)
                     .setLabel('Detener')
                     .setStyle(ButtonStyle.Secondary),
                 new ButtonBuilder()
-                    .setCustomId(config.btnBackUpId)
+                    .setCustomId(btnBackUpId)
                     .setLabel('Respaldar')
                     .setStyle(ButtonStyle.Success),
                 new ButtonBuilder()
-                    .setCustomId(config.btnRebootId)
+                    .setCustomId(btnRebootId)
                     .setLabel('Reiniciar')
                     .setStyle(ButtonStyle.Danger)
             );

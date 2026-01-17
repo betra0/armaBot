@@ -42,14 +42,9 @@ module.exports = {
 
         if (interaction.user.bot) return;
 
-        let data = await getSimpleRedisJson({
-            redis: redis,
-            type: 'checkUser:config',
-            UID: `${interaction.guild.id}`
-        });
 
         // boton de verificación
-        if (interaction.customId === "verifyUserBtn" || (data && data.btnId && interaction.customId === data.btnId)) {
+        if (interaction.customId === "verifyUserBtn") {
             console.log(prefixLog + '**Botón de verificación presionado por:', interaction.user.tag);
             const raw = await redis.get(`verifyAttempts:${interaction.user.id}`);
             let intento = raw === null ? -1 : Number(raw);
@@ -68,6 +63,11 @@ module.exports = {
                 await interaction.showModal(modal);
                 return;
             }
+            const data = await getSimpleRedisJson({
+                redis: redis,
+                type: 'checkUser:config',
+                UID: `${interaction.guild.id}`
+            });
             
             const minHoursArray = [7, 24*8*7]; // opciones de horas mínimas, de 7 horas a 7 semanas
             const timeCreatedMs = interaction.user.createdTimestamp;
@@ -150,16 +150,17 @@ module.exports = {
             return;
         }
 
-        data = await getSimpleRedisJson({
-            redis: redis,
-            type: 'adminCraftyServer:config',
-            UID: `${interaction.guild.id}`
-        });
+
 
         // botones de administración del servidor crafty
-        if (data && (data.btnStartId === interaction.customId || data.btnStopId === interaction.customId || data.btnRebootId === interaction.customId || data.btnBackUpId === interaction.customId)) {
+        if (["startServerCraftyBtn", "stopServerCraftyBtn", "rebootServerCraftyBtn", "backupServerCraftyBtn"].includes(interaction.customId)) {
             console.log(prefixLog + '**Botón de administración presionado por:', interaction.user.tag);
-            if (interaction.customId === data.btnStartId) {
+            const data = await getSimpleRedisJson({
+                redis: redis,
+                type: 'adminCraftyServer:config',
+                UID: `${interaction.guild.id}`
+            });
+            if (interaction.customId === "startServerCraftyBtn") {
                 try {
                     await sendCraftyAction(data.serverEndpoint, data.craftyToken, 'start_server');
                 
@@ -175,7 +176,7 @@ module.exports = {
                         ephemeral: true,
                     });
                 }
-            } else if (interaction.customId === data.btnStopId || interaction.customId === data.btnRebootId || interaction.customId === data.btnBackUpId) {
+            } else if (["stopServerCraftyBtn", "rebootServerCraftyBtn", "backupServerCraftyBtn"].includes(interaction.customId)) {
                 //revisar si el usuario tiene rol permitido data.roleToAdmin tiene el id del rol
                 if (interaction.member && !interaction.member?.roles.cache.has(data.roleToAdmin)) {
                     return interaction.reply({
@@ -183,7 +184,13 @@ module.exports = {
                         ephemeral: true,
                     });
                 }
-                const action = interaction.customId === data.btnStopId ? 'stop_server' : interaction.customId === data.btnRebootId ? 'restart_server' : 'backup_server';
+                newKeys={
+                    'stopServerCraftyBtn':'stop_server',
+                    'rebootServerCraftyBtn':'restart_server',
+                    'backupServerCraftyBtn':'backup_server'
+                }
+
+                const action = newKeys[interaction.customId];
                 let actionurl = action;
                 if (action === "backup_server")
                 {

@@ -47,7 +47,6 @@ Antes de continuar, tómate un momento para leer la información inicial. Nos ay
             roleToAssign: null,
             channelId: null,
             messageId: null,
-            btnId: null,
         };
         const respuestasArray = [
             {
@@ -265,7 +264,7 @@ Antes de continuar, tómate un momento para leer la información inicial. Nos ay
         }
         
         async function createVerification(guild, config, embeds){
-            config.btnId = 'verificacion_btn_' + guild.id + '_' + Date.now()
+            const btnId = 'verifyUserBtn' 
             // crear canal de texto
             const permisos=[
                 {
@@ -295,7 +294,7 @@ Antes de continuar, tómate un momento para leer la información inicial. Nos ay
 
             const row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
-                    .setCustomId(config.btnId)
+                    .setCustomId(btnId)
                     .setLabel('Verificar')
                     .setEmoji('✅') 
                     .setStyle(ButtonStyle.Primary)

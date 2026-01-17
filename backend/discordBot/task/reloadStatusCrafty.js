@@ -223,19 +223,19 @@ const reloadStatusCraftyTask = async (client, redis) => {
             const actionRow = new ActionRowBuilder()
                 .addComponents(
                     new ButtonBuilder()
-                        .setCustomId(config.btnStartId)
+                        .setCustomId("startServerCraftyBtn")
                         .setLabel('Iniciar')
                         .setStyle(ButtonStyle.Success),
                     new ButtonBuilder()
-                        .setCustomId(config.btnStopId)
+                        .setCustomId("stopServerCraftyBtn")
                         .setLabel('Detener')
                         .setStyle(ButtonStyle.Danger),
                     new ButtonBuilder()
-                        .setCustomId(config.btnRebootId)
+                        .setCustomId("rebootServerCraftyBtn")
                         .setLabel('Reiniciar')
                         .setStyle(ButtonStyle.Secondary),
                     new ButtonBuilder()
-                        .setCustomId(config.btnBackUpId)
+                        .setCustomId("backupServerCraftyBtn")
                         .setLabel('respaldar')
                         .setStyle(ButtonStyle.Primary)
                 );
