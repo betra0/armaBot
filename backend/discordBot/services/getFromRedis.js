@@ -20,6 +20,12 @@ const getInfoAdressForRedis = async ({ adress=null, redis})=>{
     }
     let infoAdress = await redis.hget(`adressInfo`, adress)
     infoAdress = infoAdress ? JSON.parse(infoAdress) : null
+    let imgsAdress = await redis.hget(`adressImgs`, adress)
+    imgsAdress = imgsAdress ? JSON.parse(imgsAdress) : null
+    // meter img en la info
+    if (infoAdress && imgsAdress){
+        infoAdress.imgs = imgsAdress
+    }
     // formatear info del adress
     if (infoAdress){
         //console.log("esta es la info pre formated; ", infoAdress)
@@ -28,8 +34,21 @@ const getInfoAdressForRedis = async ({ adress=null, redis})=>{
     return infoAdress
 
 }
+const getSimpleRedisJson = async ({ redis, type = 'defectData', UID }) => {
+  if (!redis) {
+    throw new Error('Missing required parameter: redis client');
+  }
+
+  if (!UID) {
+    throw new Error('Missing required parameter: UID');
+  }
+
+  const data = await redis.hget(`databot:${type}`, UID);
+  return data ? JSON.parse(data) : null;
+};
 
 module.exports = {
     getListRedisIpSubcription,
-    getInfoAdressForRedis
+    getInfoAdressForRedis,
+    getSimpleRedisJson
 }

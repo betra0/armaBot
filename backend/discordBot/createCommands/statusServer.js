@@ -115,7 +115,7 @@ module.exports = {
             });
             insertAdressTofetcher({adress, redis})
             const infoAdress = await getInfoAdressForRedis({adress, redis})
-            const allEbeds = GenerateEmbedStatusServer({infoAdress, seudoTitle})
+            const allEbeds = await GenerateEmbedStatusServer({infoAdress, seudoTitle})
 
             allEbeds.push(generateMessageEmbed(
                 {

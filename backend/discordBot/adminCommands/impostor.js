@@ -1,14 +1,16 @@
 module.exports = {
-    description:'para poder mandar msg como si fues el bot',
+    description:'Envía un mensaje como si fuera otro usuario. Puedes especificar un canal diferente usando el argumento --channel .',
+    usage: '%s impostor --channel #channel @user messageContent',
     run: async (message) => {
         const args = message.content.split(' ');
+        args.shift(); // eliminar el primer elemento que es el activador del comando
         let channelName = message.channel; // Por defecto, se utilizará el canal actual
         let isNewChannel = false
         let messageContent = '';
         let avatarURL = message.author.displayAvatarURL({ dynamic: true })
         let nickname =  message.author.displayName ;
         console.log('este es el args: ', args)
-        const channelIndex = args.indexOf('-channel');
+        const channelIndex = args.indexOf('--channel');
         if (channelIndex !== -1 && channelIndex < args.length - 1) {
             isNewChannel = true
             channelName = args[channelIndex + 1];
@@ -40,22 +42,29 @@ module.exports = {
         if (isNewChannel && !channelName) {
             return message.reply(`No se encontró un canal con el nombre ${channelName}.`);
         }
-        if (!channelName.permissionsFor(message.author).has('SEND_MESSAGES')) {
-            return message.reply('No tienes permiso para enviar mensajes en ese canal.');
+        //if (!channelName.permissionsFor(message.author).has('SEND_MESSAGES')) {
+        //    return message.reply('No tienes permiso para enviar mensajes en ese canal.');
+        //}
+        if (!isNewChannel) {
+            await message.delete();
         }
-        if(!isNewChannel){
-            message.delete()
+
+        try {
+            const webhook = await channelName.createWebhook({
+                name: nickname,
+                avatar: avatarURL,
+                reason: 'Impersonation command'
+            });
+      
+            await webhook.send(messageContent);
+      
+            // borrar el webhook ya que es de un solo uso
+            await webhook.delete();
+      
+        } catch (err) {
+            console.error(err);
         }
-        channelName.createWebhook({
-            name: nickname,
-            avatar: avatarURL,
-            reason: 'Needed a cool new Webhook'
-          })
-            .then(webhook => {
-                // Enviar el mensaje a través del webhook
-                webhook.send(messageContent);
-            })
-            .catch(console.error);
+
 
     }
 }

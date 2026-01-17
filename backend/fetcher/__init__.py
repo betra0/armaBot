@@ -26,7 +26,6 @@ def refreshInfo():
     errorId = "Error"  # ID único para identificar el evento
     try:
         refreshIpsinfo()
-        logging.info("funcion ejecutada.")
         isError=False
         
     except Exception as e:
@@ -46,7 +45,6 @@ def dividirAdress(address):
 
 
 def refreshIpsinfo():
-    logging.info("Actualizando la información del las ips...")
     addressList = getIpForRedis()
     for address in addressList:
         ip, port = dividirAdress(address)
@@ -63,7 +61,6 @@ def refreshIpsinfo():
                     saveAdressInRedis(address, infoadresDict)
                     # avisar de cambio en redis
                     if isSubadressInRedis(address):
-                        logging.info("¡avisar en redis que la info cambio!")
                         publishNewChange(address)
                         #comparar la cantidad de jugadores y avisar a redis
                         # si la cantidad de jugadoeres cambio entonces le avisara a redis
@@ -71,7 +68,6 @@ def refreshIpsinfo():
                 else:
                     saveAdressInRedis(address, infoadresDict)
                     if isSubadressInRedis(address):
-                        logging.info("¡avisar en redis que la info cambio!")
                         publishNewChange(address)
                         #comparar la cantidad de jugadores y avisar a redis
                         # si la cantidad de jugadoeres cambio entonces le avisara a redis
@@ -88,7 +84,7 @@ def refreshIpsinfo():
         except Exception as e: 
             logging.error(f"Error al consultar la información de la ip: {ip} en el puerto: {port} : {e}")
             raise e
-    logging.info("¡Información actualizada exitosamente!")
+
     pass
 
 
@@ -123,7 +119,6 @@ def isSubadressInRedis(address):
         return True
 def publishNewChange(adress):
     r.publish("adressChangeInfo", adress)
-    logging.info(f"Se ha publicado un cambio en la dirección: {adress}") 
 
 
 def getInfoAdresFromA2s(ip, port):
@@ -134,7 +129,6 @@ def getInfoAdresFromA2s(ip, port):
         
         # Convertir jugadores a diccionarios
         playerslistFormat = [player.__dict__ for player in players]
-        logging.info(f" estos son los players: {playerslistFormat}")
         return {
             "info": serverInfo.__dict__,
             "players": playerslistFormat,
@@ -173,7 +167,6 @@ def compareAdressinfo(adressInfo, otherAdressInfo):
     a= deep_compare(adressInfo["info"], otherAdressInfo["info"], ignore_key=["ping", "keywords"])
     b= compare_namesInList(adressInfo["players"], otherAdressInfo["players"])
     c = adressInfo.get("status", False) == otherAdressInfo.get("status", False)
-    logging.info(f"la comparacion de la info es : {a} y {b} y {c}")
     #return False
     return a and b and c
 
@@ -185,7 +178,6 @@ def compare_namesInList(list1, list2):
     # Comparar los conjuntos (ignora el orden automáticamente)
     return names1 == names2
 def compareAmoutOfPlayersAndPublishForRedis(dict1Info, dict2Info, adress):
-    logging.info(f"la info de dict1 es : {dict1Info}, la info de dict2 es : {dict2Info}")
 
     if dict1Info is None and dict2Info is None:
         return False
@@ -199,7 +191,6 @@ def compareAmoutOfPlayersAndPublishForRedis(dict1Info, dict2Info, adress):
     else: 
         return False
     r.publish("adressChangePlayerCount", adress)
-    logging.info('se aviso a titleChanel que cambio status o cantidad de jugadores')
     return True
 
 
@@ -223,15 +214,14 @@ def debugPublishRedis():
    #get alladress
     addressList = getIpForRedis()
     for address in addressList:
-        logging.info(f"la adress es : {address}")
         r.publish("adressChangeInfo", address)
         r.publish("adressChangePlayerCount", address)
     
 if  __name__ == "__main__":
     # primero leer  lo que ya hay en el redis para debug
-    r2=searchAdressInRedis("104.234.7.8:2363")
-    logging.info(f"\n la info en redis es : {r2}\n")
-    insertIpInRedis()
+    #r2=searchAdressInRedis("104.234.7.8:2363")
+    #logging.info(f"\n la info en redis es : {r2}\n")
+    #insertIpInRedis()
     time.sleep(8)
     refreshIpsinfo()
     debugPublishRedis()
@@ -246,8 +236,7 @@ if  __name__ == "__main__":
     try:
         while True:
 
-            logging.info("¡Hola Mundo!")
 
-            time.sleep(60*60*3)  # Pausa para evitar un uso excesivo de CPU
+            time.sleep(60*60*5)  # Pausa para evitar un uso excesivo de CPU
     except (KeyboardInterrupt, SystemExit):
         scheduler.shutdown()

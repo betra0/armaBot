@@ -19,14 +19,60 @@ const safeValue = (value, defaultValue = 'Desconocido') => {
     // Si no cumple, devolver el valor por defecto
     return defaultValue;
 };
+async function checkImageExists(url) {
+    //verificar que es una url str 
+    console.log('iniciando checkImageExists con url: ', url)
+    if (typeof url !== 'string' || url.trim() === '') {
+        return false
+    }
+  try {
+    const res = await fetch(url, { method: "HEAD" })
+    if (!res.ok) return false
+    const type = res.headers.get("content-type")
+    return type && type.startsWith("image/")
+  } catch (err) {
+    console.error('Error checking image URL:', err)
+    return false
+  }
+}
 
-const GenerateEmbedStatusServer = ({infoAdress=null, seudoTitle='No definido'}) => {
-    console.log('infoAdress dentro de Gener..EbedStatus: ', infoAdress)
+const  GenerateEmbedStatusServer = async ({infoAdress=null, seudoTitle='No definido'}) => {
     const allEbeds = []
     if (!infoAdress){
          return [generateMessageEmbed({title:'Warning', descripcion:'No se a encontrado Informacion del servidor aun.'}),]
     }
-    console.log('antes del primer embed')
+    //elegir la img a usar 
+    let imgToUse = 'https://cdn.discordapp.com/attachments/1417387761501208656/1417387791846998086/image.png?ex=68ca4cbf&is=68c8fb3f&hm=e7fa9ab0901c3deb30f3b4cc88f1d20ea13ee7217268c6bbabef1bb7e054c546&'
+    // si hay imgs en la info usar una de ellas dew forma aleatoria
+    if (infoAdress.imgs && Array.isArray(infoAdress.imgs) && infoAdress.imgs.length > 0) {
+        // seleccionar una img aleatoria
+        let intent =0
+        let indexRotos = []
+        while (intent < 15){
+            console.log('iniciando intento de img numero: ', intent)
+            const randomIndex = Math.floor(Math.random() * infoAdress.imgs.length);
+            const randomImg = infoAdress.imgs[randomIndex];
+            if (indexRotos.includes(randomIndex)){
+                intent +=1
+                continue
+            }
+            // comprobar que la img existe
+            if (randomImg && await checkImageExists(randomImg)){
+                imgToUse = randomImg
+                break
+            }
+            indexRotos.push(randomIndex)
+            
+            // si no existe intentar con otra img
+            if (indexRotos.length >= infoAdress.imgs.length){
+                // si ya se han probado todas las imgs salir del bucle
+                console.log('todas las imgs probadas, saliendo del bucle','intentos: ', intent, 'imgs rotas: ', indexRotos)
+                break
+            }
+            intent +=1
+        }
+        console.log('Fuera del bucle, intentos usados: ', intent,)
+    }
     const embed = new EmbedBuilder()
     .setColor('#0099ff')
     .setTitle(`≫ ${seudoTitle} ≪`)
@@ -43,12 +89,11 @@ const GenerateEmbedStatusServer = ({infoAdress=null, seudoTitle='No definido'}) 
             
         
     )
-    .setImage('https://cdn.discordapp.com/attachments/1349294304455163938/1349294670806646824/36636746158cb38795e0eb6cdde17624d7183ed4.png?ex=67d29416&is=67d14296&hm=fc441b5728558c3286e726cd3c2acb336a2a65ba4b00f131673213df7bf924fb&')
+    .setImage(imgToUse)
     .setTimestamp();
     allEbeds.push(embed)
     // si el status es false se agrega un embed de error
     if(infoAdress.status == false){
-        console.log('status false')
         allEbeds.push(generateMessageEmbed({title:'Error', descripcion:'El servidor se encuentra cerrado o no se ha podido obtener la información.'}))
     }
 

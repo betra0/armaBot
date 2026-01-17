@@ -1,6 +1,5 @@
 const findAndEditMessageText = async (client ,idChannel, idMessage, data='') => {
     /* IdChannel, IdMessage Data */
-    console.log('Buscando mensaje...');
     try{
         const channel = await client.channels.fetch(idChannel);
         if (channel && channel.isTextBased()) {
@@ -53,11 +52,9 @@ const findAndEditChannelName = async (client, idChannel, newName, verify=false) 
                     console.log('No fue necesario cambiar el nombre del canal.');
                     return false;
                 }else{
-                    console.log('El n Nombre actaul del canal es: ', channel.name);
-                    console.log('El nuevo nombre  a cambiar es del canal es: ', newName);
+                    console.log('El n Nombre actaul del canal es: ', channel.name, ' y se cambiara a: ', newName);
                 }
             }
-            console.log('en el await de set name...');
             try{
                 await setChannelNameWithTimeout(channel, newName);
 
@@ -66,7 +63,6 @@ const findAndEditChannelName = async (client, idChannel, newName, verify=false) 
                 console.error('Error en el setNameChannel:', err);
                 throw err;
             }
-            console.log('after await.');
 
             let reschanel = await client.channels.fetch(idChannel);
             let resName = reschanel.name;
