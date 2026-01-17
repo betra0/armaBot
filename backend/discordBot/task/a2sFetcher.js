@@ -1,6 +1,6 @@
-const {getInfoAdressForRedisNoFormat } = require("../services/getFromRedis");
+const {getInfoAdressForRedisNoFormat, getSimpleRedisJson } = require("../services/getFromRedis");
 const { info, players } = require('source-server-query');
-const { saveInfoAdressinRedis } = require("../services/insertInRedis");
+const { saveInfoAdressinRedis, saveSimpleRedisJson } = require("../services/insertInRedis");
 
 
 async function getInfoAdressFromA2s(ip, port) {
@@ -78,7 +78,10 @@ async function logicAdressInfo(ip, port, redis){
     // si IF no hay cambios en data 
 	if (compareAdressInfoSI(olddata, serverData)) return;
 	else {
+		console.log(`Cambios detectados en la info del servidor ${key}`);
 		await saveInfoAdressinRedis({ adress: key, infoAdress: serverData, redis });
+		const {joinedPlayers, leftPlayers} = trackPlayerLeftJoin(serverData.players, olddata.players);
+		await savejoinLeftRegistrer({redis, address: key, joinedPlayers, leftPlayers});
 		callRedisChangeInfo(redis, key);
 
 		if (
@@ -145,6 +148,63 @@ async function callRedisChangeamountPlayers(redis, adress) {
 }
 async function callRedisChangeInfo(redis, adress) {
     redis.publish('adressChangeInfo', adress);
+}
+function trackPlayerLeftJoin(newPlayers, oldPlayers){
+	const oldPlayerNames = new Set(oldPlayers.map(p => p.name));
+	const newPlayerNames = new Set(newPlayers.map(p => p.name));
+
+	const joinedPlayers = newPlayers
+		.filter(p => !oldPlayerNames.has(p.name))
+		.map(p => p.name); // solo nombres
+
+	const leftPlayers = oldPlayers
+		.filter(p => !newPlayerNames.has(p.name))
+		.map(p => p.name); // solo nombres
+
+	return { joinedPlayers, leftPlayers };
+}
+
+
+async function savejoinLeftRegistrer({redis, address, joinedPlayers, leftPlayers, key="a2sServer:playerJoinLeftRegister"}){
+	
+	// guardar en redis o base de datos
+	let register = await getSimpleRedisJson({
+        redis,
+        type: key,
+        UID: address,
+    });
+	if (!register || !Array.isArray(register)) {
+        register = [];
+    }
+	for (const playerName of joinedPlayers) {
+		register.push({
+			playerName,
+			action: 'join',
+			timestamp: new Date().toISOString(),
+		});
+	}
+	for (const playerName of leftPlayers) {
+		register.push({
+			playerName,
+			action: 'left',
+			timestamp: new Date().toISOString(),
+		});
+	}
+	console.log(` Registrer before trim: `, register);
+	const maxRegisterLength = 12;
+	if (register.length > maxRegisterLength) {
+		register = register.slice(register.length - maxRegisterLength);
+	}
+	
+	await saveSimpleRedisJson({
+        redis,
+        type: key,
+        UID: address,
+        json: register,
+
+     });
+	
+
 }
 async function a2sFetcherMain(redis) {
     adreesToFetch = await redis.smembers('ipsTofech');

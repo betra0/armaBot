@@ -116,6 +116,31 @@ const  GenerateEmbedStatusServer = async ({infoAdress=null, seudoTitle='No defin
     
         allEbeds.push(embed2);
     }
+    console.log('infoAdress.joinLeftRegister: ', infoAdress.joinLeftRegister)
+    if (infoAdress.joinLeftRegister && infoAdress.joinLeftRegister.length > 0) {
+        const actions = infoAdress.joinLeftRegister;
+
+        const logs = actions
+            .map(a => {
+                const time = new Date(a.timestamp).toLocaleString('es-CL', {
+                    timeZone: 'America/Santiago',
+                    hour12: false,       // 24 horas
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                return `[${time}] ${a.playerName}: ${a.action}`;
+            })
+            .join('\n');
+
+        const embed3 = new EmbedBuilder()
+            .setColor('#0099ff')
+            .setTitle(`Registro de acciones`)
+            .setDescription(`\`\`\`log\n${logs}\n\`\`\``);
+
+        allEbeds.push(embed3);
+    }
     return allEbeds
 }
 

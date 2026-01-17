@@ -24,8 +24,10 @@ const infoServerFormatted = ({ infoAdress }) => {
         players: infoAdress.players,
         updatedInfo: infoAdress.updatedInfo,
         status: infoAdress.status,
-        imgs: infoAdress.imgs ? infoAdress.imgs : null
+        imgs: infoAdress.imgs ? infoAdress.imgs : null,
+        joinLeftRegister: infoAdress.joinLeftRegister ? infoAdress.joinLeftRegister : []
     };
+    console.log("Info formateada: ", dictInfoFormatted.joinLeftRegister); 
 
     return dictInfoFormatted;
 };
