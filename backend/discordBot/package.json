@@ -13,6 +13,7 @@
     "axios": "^1.7.9",
     "discord.js": "^14.17.2",
     "dotenv": "^16.4.7",
-    "ioredis": "^5.4.2"
+    "ioredis": "^5.4.2",
+    "source-server-query": "^3.0.3"
   }
 }
