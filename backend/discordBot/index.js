@@ -84,16 +84,6 @@ async function startReloadLoop() {
         await sleep(1000 * 60 * 2); // 3 minutos
     }
 }
-async function startA2sLoop(){
-        while(true) {
-        try {
-            // 
-        } catch (e) {
-            console.error('Error en reloadStatusCraftyTask:', e);
-        }
-        await sleep(1000 * 60 * 2); // 3 minutos
-    }
-}
  
 async function startA2sFetcherLoop(){
     const { a2sFetcherMain } = require('./task/a2sFetcher');
@@ -103,7 +93,7 @@ async function startA2sFetcherLoop(){
         } catch (e) {
             console.error('Error en a2sFetcherMain:', e);
         }
-        await sleep(1000 * 60 * 2); // 2 minutos
+        await sleep(1000 * 60 * 4); // 4 minutos
     }
 } 
 

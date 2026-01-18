@@ -35,7 +35,17 @@ async function checkImageExists(url) {
     return false
   }
 }
+function formatoDuracion(segundos) {
+  if (segundos == null) return 'Desconocido';
 
+  const hrs = Math.floor(segundos / 3600);
+  const mins = Math.floor((segundos % 3600) / 60);
+  const secs = Math.floor(segundos % 60);
+
+  if (hrs > 0) return `${hrs}h ${mins}m`;
+  if (mins > 0) return `${mins}m ${secs}s`;
+  return `${secs}s`;
+}
 const  GenerateEmbedStatusServer = async ({infoAdress=null, seudoTitle='No definido'}) => {
     const allEbeds = []
     if (!infoAdress){
@@ -102,9 +112,10 @@ const  GenerateEmbedStatusServer = async ({infoAdress=null, seudoTitle='No defin
         const maxFields = 25; // Límite de Discord
     
         for (let i = 0; i < Math.min(infoAdress.players.length, maxFields); i++) {
+            let tiempoDeJuego = formatoDuracion(infoAdress.players[i].duration);
             fieldsPlayers.push({
                 name: `${safeValue(infoAdress.players[i].name)}`,
-                value: `${Number(infoAdress.players[i].score) * 100} Puntos`,
+                value: `${tiempoDeJuego}`,
                 inline: true
             });
         }
