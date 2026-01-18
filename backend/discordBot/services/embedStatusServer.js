@@ -21,7 +21,6 @@ const safeValue = (value, defaultValue = 'Desconocido') => {
 };
 async function checkImageExists(url) {
     //verificar que es una url str 
-    console.log('iniciando checkImageExists con url: ', url)
     if (typeof url !== 'string' || url.trim() === '') {
         return false
     }
@@ -59,7 +58,6 @@ const  GenerateEmbedStatusServer = async ({infoAdress=null, seudoTitle='No defin
         let intent =0
         let indexRotos = []
         while (intent < 15){
-            console.log('iniciando intento de img numero: ', intent)
             const randomIndex = Math.floor(Math.random() * infoAdress.imgs.length);
             const randomImg = infoAdress.imgs[randomIndex];
             if (indexRotos.includes(randomIndex)){
@@ -81,7 +79,7 @@ const  GenerateEmbedStatusServer = async ({infoAdress=null, seudoTitle='No defin
             }
             intent +=1
         }
-        console.log('Fuera del bucle, intentos usados: ', intent,)
+        console.log('Fuera del bucle, intentos usados para imagen: ', intent,)
     }
     const embed = new EmbedBuilder()
     .setColor('#0099ff')
@@ -127,7 +125,6 @@ const  GenerateEmbedStatusServer = async ({infoAdress=null, seudoTitle='No defin
     
         allEbeds.push(embed2);
     }
-    console.log('infoAdress.joinLeftRegister: ', infoAdress.joinLeftRegister)
     if (infoAdress.joinLeftRegister && infoAdress.joinLeftRegister.length > 0) {
         const actions = infoAdress.joinLeftRegister;
 

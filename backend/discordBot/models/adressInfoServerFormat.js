@@ -27,7 +27,6 @@ const infoServerFormatted = ({ infoAdress }) => {
         imgs: infoAdress.imgs ? infoAdress.imgs : null,
         joinLeftRegister: infoAdress.joinLeftRegister ? infoAdress.joinLeftRegister : []
     };
-    console.log("Info formateada: ", dictInfoFormatted.joinLeftRegister); 
 
     return dictInfoFormatted;
 };

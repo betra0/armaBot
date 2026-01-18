@@ -23,7 +23,6 @@ const getInfoAdressForRedis = async ({ adress=null, redis})=>{
     let imgsAdress = await redis.hget(`adressImgs`, adress)
     imgsAdress = imgsAdress ? JSON.parse(imgsAdress) : null
     let register = await redis.hget(`databot:a2sServer:playerJoinLeftRegister`, adress)
-    console.log('en getinfoAdressForRedis', register) 
     register = register ? JSON.parse(register) : []
     // meter img en la info
     if (infoAdress){

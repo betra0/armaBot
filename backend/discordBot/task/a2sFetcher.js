@@ -2,10 +2,9 @@ const {getInfoAdressForRedisNoFormat, getSimpleRedisJson } = require("../service
 const { info, players } = require('source-server-query');
 const { saveInfoAdressinRedis, saveSimpleRedisJson } = require("../services/insertInRedis");
 
-
+const prefixLog = '[A2S FETCHER]';
 async function getInfoAdressFromA2s(ip, port) {
   try {
-    console.log(`Fetching A2S info for ${ip}:${port}`);
     const serverInfo = await info(ip, port, 8000);
     const serverPlayers = await players(ip, port, 8000);
 
@@ -52,7 +51,7 @@ async function getOldDataAdress(redis, key){
 async function logicAdressInfo(ip, port, redis){
 	key = `${ip}:${port}`;
     const serverData = await getInfoAdressFromA2s(ip, port);
-	console.log(`data obtenida : `, serverData);
+	console.log(prefixLog, `data : `, serverData);
     const olddata = await getOldDataAdress(redis, key); 
 
 
@@ -78,7 +77,7 @@ async function logicAdressInfo(ip, port, redis){
     // si IF no hay cambios en data 
 	if (compareAdressInfoSI(olddata, serverData)) return;
 	else {
-		console.log(`Cambios detectados en la info del servidor ${key}`);
+		console.log(prefixLog ,`Cambios detectados en ${key}`);
 		await saveInfoAdressinRedis({ adress: key, infoAdress: serverData, redis });
 		const {joinedPlayers, leftPlayers} = trackPlayerLeftJoin(serverData.players, olddata.players);
 		await savejoinLeftRegistrer({redis, address: key, joinedPlayers, leftPlayers});
@@ -190,7 +189,6 @@ async function savejoinLeftRegistrer({redis, address, joinedPlayers, leftPlayers
 			timestamp: new Date().toISOString(),
 		});
 	}
-	console.log(` Registrer before trim: `, register);
 	const maxRegisterLength = 12;
 	if (register.length > maxRegisterLength) {
 		register = register.slice(register.length - maxRegisterLength);
@@ -208,7 +206,7 @@ async function savejoinLeftRegistrer({redis, address, joinedPlayers, leftPlayers
 }
 async function a2sFetcherMain(redis) {
     adreesToFetch = await redis.smembers('ipsTofech');
-	console.log("A2S FETCHER - Fetching info for addresses: ", adreesToFetch);
+	console.log(prefixLog, "Fetching info for addresses: ", adreesToFetch);
 
     for (const adress of adreesToFetch) {
         const [ip, portStr] = adress.split(':');
