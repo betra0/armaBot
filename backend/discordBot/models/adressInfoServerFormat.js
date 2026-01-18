@@ -24,7 +24,7 @@ const infoServerFormatted = ({ infoAdress }) => {
         players: infoAdress.players,
         updatedInfo: infoAdress.updatedInfo,
         status: infoAdress.status,
-        ip: infoAdress.ip,
+        ip: infoAdress.info.ip,
         imgs: infoAdress.imgs ? infoAdress.imgs : null,
         joinLeftRegister: infoAdress.joinLeftRegister ? infoAdress.joinLeftRegister : []
     };
