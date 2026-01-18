@@ -228,7 +228,7 @@ module.exports = {
 
 
         } catch (error) {
-            console.error(error);
+            console.error(prefixLog, error);
             console.log('')
             console.log(prefixLog + 'Error al procesar la interacción');
         }
