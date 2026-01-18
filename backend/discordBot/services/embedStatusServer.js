@@ -92,7 +92,7 @@ const  GenerateEmbedStatusServer = async ({infoAdress=null, seudoTitle='No defin
         { name: 'Contraseña:', value: `${safeValue(infoAdress.passwordProtected ? 'Sí' : 'No')}`, inline: true },
         { name: 'Versión', value: `${safeValue(infoAdress.version)}`, inline: true },
         { name: 'SteamId', value: `${safeValue(infoAdress.steamId)}`, inline: true },
-        { name: 'IP', value: `${safeValue(infoAdress.adress)}`, inline: true },
+        { name: 'IP', value: `${safeValue(infoAdress.ip)}`, inline: true },
         { name: 'Puerto', value: `${safeValue(infoAdress.port)}`, inline: true },
             
         
