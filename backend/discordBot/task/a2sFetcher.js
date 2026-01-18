@@ -126,6 +126,7 @@ function compareNamesInList(list1, list2) {
 
 function isUpdateRecentEnough(dataOld, dataNew, thresholdMs = 60000 * 5){
   if (!dataOld.updatedInfo || !dataNew.updatedInfo) return true;
+  if (dataNew.info?.players === 0) return true;
 
   const timeOld = new Date(dataOld.updatedInfo).getTime();
   const timeNew = new Date(dataNew.updatedInfo).getTime();
