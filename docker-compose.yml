@@ -6,7 +6,7 @@ services:
     build:
       context: ./backend/discordBot
       dockerfile: Dockerfile        
-    restart: always               
+    restart: unless-stopped               
     environment:
       - BOTDSTOKEN=${BOTDSTOKEN}   # Token del bot
       - INTENTSDS=${INTENTSDS}     # Intenciones necesarias para el bot
@@ -19,7 +19,7 @@ services:
 
   redis:
      image: redis:latest
-     restart: always
+     restart: unless-stopped
      command: ["redis-server", "--appendonly", "yes"]
      ports:
         - "6383:6379"               # Exponer el puerto 6379
