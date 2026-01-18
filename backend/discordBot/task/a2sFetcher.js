@@ -123,6 +123,16 @@ function compareNamesInList(list1, list2) {
 
   return true;
 }
+
+function isUpdateRecentEnough(dataOld, dataNew, thresholdMs = 60000 * 5){
+  if (!dataOld.updatedInfo || !dataNew.updatedInfo) return true;
+
+  const timeOld = new Date(dataOld.updatedInfo).getTime();
+  const timeNew = new Date(dataNew.updatedInfo).getTime();
+
+  return Math.abs(timeNew - timeOld) <= thresholdMs;
+
+}
 function compareAdressInfoSI(dataOld, dataNew) {
   const a = deepCompare(
     dataOld.info,
@@ -139,7 +149,9 @@ function compareAdressInfoSI(dataOld, dataNew) {
 
   const d =  (dataOld.errorType ?? null) === (dataNew.errorType ?? null);
 
-  return a && b && c && d;
+  const e = isUpdateRecentEnough(dataOld, dataNew, 1000 * 60 * 8); // 8 minutos
+
+  return a && b && c && d && e;
 }
 
 async function callRedisChangeamountPlayers(redis, adress) {
