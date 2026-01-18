@@ -13,7 +13,7 @@ async function getInfoAdressFromA2s(ip, port) {
       ...serverInfo,
       steamid: serverInfo.steamid?.toString(),
       gameid: serverInfo.gameid?.toString(),
-	  ip: ip
+	    ip: ip
     };
 
     return {
