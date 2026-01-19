@@ -64,10 +64,23 @@ const getSimpleRedisJson = async ({ redis, type = 'defectData', UID }) => {
   const data = await redis.hget(`databot:${type}`, UID);
   return data ? JSON.parse(data) : null;
 };
+const getRedisJson = async ({ redis, key }) => {
+  if (!redis) throw new Error('Missing redis client');
+  if (!key) throw new Error('Missing key');
 
+  const value = await redis.get(key);
+  if (!value) return null;
+
+  try {
+    return JSON.parse(value);
+  } catch (err) {
+    return null;
+  }
+};
 module.exports = {
     getListRedisIpSubcription,
     getInfoAdressForRedis,
     getSimpleRedisJson,
-    getInfoAdressForRedisNoFormat
+    getInfoAdressForRedisNoFormat,
+    getRedisJson
 }

@@ -33,16 +33,43 @@ const saveInfoAdressinRedis = async ({ adress, infoAdress, redis})=>{
     }
     await redis.hset(`adressInfoN`, adress, JSON.stringify(infoAdress))
 }
-const saveSimpleRedisJson = async ({ redis, type = 'defectData', UID, json }) => {
-  if (!redis) {
-    throw new Error('Missing required parameter: redis client');
-  }
+const saveSimpleRedisJson = async ({ redis, type = 'defectData', UID, json, TTL= null }) => {
+	if (!redis) {
+    	throw new Error('Missing required parameter: redis client');
+  	}
 
-  if (!UID || !json) {
-    throw new Error('Missing required parameters: UID or json');
-  }
+  	if (!UID || !json) {
+    	throw new Error('Missing required parameters: UID or json');
+  	}
 
-  await redis.hset(`databot:${type}`, UID, JSON.stringify(json));
+  	await redis.hset(`databot:${type}`, UID, JSON.stringify(json));
+	if (TTL) {
+    	// EX = segundos
+    	await redis.call(
+        	'HEXPIRE',
+        	`databot:${type}`, // la key hash
+        	TTL,
+        	'FIELDS',          // literal obligatorio
+        	UID                // el field específico
+    	);
+  	}
+};
+const saveRedisJsonTTL = async ({
+  redis,
+  key,
+  json,
+  TTL = null
+}) => {
+  if (!redis) throw new Error('Missing redis client');
+  if (!key || !json) throw new Error('Missing key or json');
+
+  const value = JSON.stringify(json);
+
+  if (TTL) {
+    await redis.set(key, value, 'EX', TTL);
+  } else {
+    await redis.set(key, value);
+  }
 };
 
 
@@ -50,5 +77,6 @@ module.exports = {
     saveRedisNewMessageSubcription,
     insertAdressTofetcher,
     saveSimpleRedisJson,
-    saveInfoAdressinRedis
+    saveInfoAdressinRedis,
+    saveRedisJsonTTL
 }
