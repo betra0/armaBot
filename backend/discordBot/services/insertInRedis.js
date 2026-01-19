@@ -65,6 +65,7 @@ const saveRedisJsonTTL = async ({
 
   const value = JSON.stringify(json);
 
+  //experimental: guardar con TTL si se proporciona
   if (TTL) {
     await redis.set(key, value, 'EX', TTL);
   } else {
