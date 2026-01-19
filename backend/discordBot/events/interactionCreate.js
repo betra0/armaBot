@@ -10,6 +10,7 @@ const {
   TextInputStyle,
   ActionRowBuilder
 } = require('discord.js');
+const { ticketHandler } = require('../handlers/ticket.handler');
 
 
 const craftyDispatcher = new Agent({
@@ -148,6 +149,11 @@ module.exports = {
                 console.log(prefixLog + 'Verificación adicional fallida para', userTag);
             }
             return;
+        }
+
+        if(interaction.customId.startsWith('ticket:')) {
+            await ticketHandler(interaction, client, redis);
+            return; 
         }
 
 
