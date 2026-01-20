@@ -29,6 +29,7 @@ module.exports = {
             imageUrl: null,
             roleToAssign: null,
             staffAurthorityRoles: [], // roles que pueden ver y gestionar los tickets
+            MessagePostApproveStr: '',
             channelId: null,
             messageId: null,
             categoryId: null,
@@ -67,12 +68,16 @@ module.exports = {
                 descripcion:` Por favor, mencione los roles que tendran autoridad para ver y gestionar los tickets de aplicacion.\n Mencione los roles separados por comas.\n ejemplo: %r @RolStaff1, @RolStaff2\n Este paso es obligatorio.`,
             },
             {
-                title:'Paso 8: imagen para el mensaje de apertura de tickets (opcional)',
+                title:'Paso 8: mensaje a enviar al aprobar aplicacion (opcional)',
+                descripcion:` Por favor, indique el mensaje que se enviara al usuario cuando su postulacion sea aprobada.\n Responda con "no" para omitir este paso.`,
+            },
+            {
+                title:'Paso 9: imagen para el mensaje de apertura de tickets (opcional)',
                 descripcion:` Por favor, indique la URL de una imagen que se mostrara en el mensaje de apertura de tickets.\n Responda con "no" para omitir este paso.`,
             }
         ]
         
-        const cantidadPasos = 8;
+        const cantidadPasos = 9;
         
         let pasoActual = await getContext(); // por defecto 0
         let actualconfig = configDef
@@ -145,14 +150,19 @@ module.exports = {
                     pasoActual--
                     return
                 }
+                actualconfig.staffAurthorityRoles = rolesIds
             
                 // rolesIds ya es válido
             } else {
                 pasoActual--
             }
-                   
         }else if (pasoActual === 8){
-            // paso 8: imagen para el mensaje de apertura de tickets
+            // paso 8: mensaje al aprobar aplicacion
+            if (respuestaUsuario && respuestaUsuario.toLowerCase() !=='no'&& respuestaUsuario.trim() !=='' ){
+                actualconfig.MessagePostApproveStr = respuestaUsuario.trim();
+            }
+        }else if (pasoActual === 9){
+            // paso 9: imagen para el mensaje de apertura de tickets
             if (respuestaUsuario && respuestaUsuario.toLowerCase() !=='no'&& respuestaUsuario.trim() !=='' ){
                 actualconfig.imageUrl = respuestaUsuario.trim();
             }
@@ -166,7 +176,7 @@ module.exports = {
         
 
 
-        // si paso 8 crear canal y mensaje
+        // si paso 9 crear canal y mensaje
         if (pasoActual == cantidadPasos+1 && !cancelado){
             
             embeds.push(generateMessageEmbed(
