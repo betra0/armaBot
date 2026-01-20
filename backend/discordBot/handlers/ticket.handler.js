@@ -1,7 +1,8 @@
-const { ChannelType, PermissionsBitField, CategoryChannel, embedLength, EmbedBuilder } = require('discord.js');
+const { ChannelType, PermissionsBitField, CategoryChannel, embedLength, EmbedBuilder, ModalBuilder } = require('discord.js');
 const { getSimpleRedisJson } = require('../services/getFromRedis');
 const { saveSimpleRedisJson } = require('../services/insertInRedis');
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { TextInputBuilder, TextInputStyle } = require('discord.js');
 
 
 
@@ -37,7 +38,16 @@ async function ticketHandler(interaction, client, redis) {
             await approveTicketApplication(interaction, client, redis, configApply);
         }
         else if (action === 'reject') {
-            
+            await rejectTicketApplication(interaction, client, redis, configApply);
+        }
+        else if (action === 'close_confirm') {
+            await closeConfirmTicketApplication(interaction, client, redis, configApply);
+        }
+        else if (action === 'close_modal') {
+            await closeModalTicketApplication(interaction, client, redis, configApply);
+        }
+        else if (action === 'reject_modal') {
+            await rejectModalTicketApplication(interaction, client, redis, configApply);
         }
     }
 
@@ -165,22 +175,49 @@ async function createTicketApplication(interaction, client, redis, configApply) 
 }
 async function closeTicketApplication(interaction, client, redis, configApply) {
 
-    const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);
+    const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply, ignoreRoles=true);
+    console.log(`[ticketHandler] closeTicketApplication invoked by user ${interaction.user.id} in channel ${interaction.channel.id}`);
+    if (dataTicket.authorId === interaction.user.id) {
+        if (dataTicket.status !=='approved'){
+            await interaction.reply({ content: `No puedes cerrar el ticket hasta que tu postulación sea aprobada o rechazada.`, ephemeral: true });
+            return;
+        }
+        else if (dataTicket.status === 'approved') {
+            console.log(`[ticketHandler] Ticket ya aprobado, cerrando directamente.`);
+            const embed = new EmbedBuilder()
+            .setColor('#FF0000')
+            .setTitle('confirmación de cierre')
+            .setDescription(`Estas seguro que deseas cerrar este ticket?`)
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`ticket:apply:close_confirm:${configApply.nombreclave}`)
+                    .setLabel('Cerrar Ticket')
+                    .setStyle(ButtonStyle.Danger)
+            );
+            await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+            return
+        }
+    }else{
+        // crear modal de confirmación y mensaje
+        const modal = new ModalBuilder()
+        .setCustomId(`ticket:apply:close_modal:${configApply.nombreclave}`)
+        .setTitle('Confirmación de cierre de ticket');
+
+        const input = new TextInputBuilder()
+        .setCustomId('close_reason')
+        .setLabel('Motivo de cierre') // <= 45 chars
+        .setPlaceholder('Opcional. Especifica el motivo o deja en blanco')
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(false);
+
+        const firstActionRow = new ActionRowBuilder().addComponents(input);
+        modal.addComponents(firstActionRow);
+
+        await interaction.showModal(modal);
+        return;
+    }
 
 
-
-    // ideal dejar un aviso antes de cerrar
-    // y dejar registro en un canal de logs
-    // deuda tecnica
-
-    // del referencia y data del ticker 
-    await redis.del(`ticket:${interaction.channel.id}:author`);
-    await redis.hdel(`databot:ticket:apply:${interaction.guildId}:${configApply.nombreclave}`, dataTicket.authorId);
-
-    // eliminar canal
-    await interaction.channel.delete('Ticket cerrado');
-
-    return;
     
     
 }
@@ -250,6 +287,87 @@ async function approveTicketApplication(interaction, client, redis, configApply)
 }
 
 
+async function rejectTicketApplication(interaction, client, redis, configApply) {
+    const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);    
+    const modal = new ModalBuilder()
+    .setCustomId(`ticket:apply:reject_modal:${configApply.nombreclave}`)
+    .setTitle('Rechazo de postulación');
+
+    const input = new TextInputBuilder()
+    .setCustomId('reject_reason')
+    .setLabel('Motivo de rechazo') 
+    .setPlaceholder('Especifica el motivo del rechazo')
+    .setStyle(TextInputStyle.Paragraph)
+    .setRequired(true);
+
+    const firstActionRow = new ActionRowBuilder().addComponents(input);
+    modal.addComponents(firstActionRow);
+
+    await interaction.showModal(modal);
+    return;
+}
+ async function rejectModalTicketApplication(interaction, client, redis, configApply) {
+    const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);    
+    const rejectReason = interaction.fields.getTextInputValue('reject_reason');
+    const user = await interaction.guild.members.fetch(dataTicket.authorId);
+    if (!user){
+        await interaction.reply({ content: `ERROR: No se pudo encontrar al miembro para enviar el rechazo.`, ephemeral: true });
+        return;
+    }
+    const channel = interaction.channel;
+    const embed = new EmbedBuilder()
+    .setColor('#FF0000')
+    .setTitle('Postulación Rechazada')
+    .setDescription(`Lamentablemente tu postulación ha sido rechazada.\n\nMotivo: ${rejectReason}`)
+    .setTimestamp();
+    await user.send({ embeds: [embed] }).catch((err) => {
+        console.log(`[ticketHandler] No se pudo enviar mensaje directo al usuario ${dataTicket.authorId}: ${err.message}`);
+    });
+    dataTicket.status = 'rejected';
+    await saveSimpleRedisJson({ redis, type: `ticket:apply:${interaction.guildId}:${configApply.nombreclave}`, UID: dataTicket.authorId, json: dataTicket });
+    await interaction.deferUpdate();
+    await channel.delete('Ticket cerrado por rechazo de postulación');
+    redis.del(`ticket:${interaction.channel.id}:author`);
+    return;
+
+}
+async function closeConfirmTicketApplication(interaction, client, redis, configApply) {
+    console.log('Cerrando ticket por confirmación directa');
+    const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply, ignoreRoles=true);
+    await redis.del(`ticket:${interaction.channel.id}:author`);
+    await redis.hdel(`databot:ticket:apply:${interaction.guildId}:${configApply.nombreclave}`, dataTicket.authorId);
+    // eliminar canal
+    await interaction.channel.delete('Ticket cerrado');
+    return;
+}
+async function closeModalTicketApplication(interaction, client, redis, configApply) {
+    const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);    
+    const closeReason = interaction.fields.getTextInputValue('close_reason');
+    if (closeReason && closeReason.trim() !==''){
+        const user = await interaction.guild.members.fetch(dataTicket.authorId);
+        if (user){
+            embed = new EmbedBuilder()
+            .setColor('#FF0000')
+            .setTitle('Cierre de Ticket')
+            .setDescription(`Tu ticket ha sido cerrado por un miembro del staff.\n\nMotivo: ${closeReason}`)
+            .setTimestamp();
+            await user.send({ embeds: [embed] }).catch((err) => {
+                console.log(`[ticketHandler] No se pudo enviar mensaje directo al usuario ${dataTicket.authorId}: ${err.message}`);
+            });
+        }else{
+            console.log(`[ticketHandler] No se pudo encontrar al usuario ${dataTicket.authorId} para enviarle el motivo de cierre.`);
+        }
+    }
+    await redis.del(`ticket:${interaction.channel.id}:author`);
+    await redis.hdel(`databot:ticket:apply:${interaction.guildId}:${configApply.nombreclave}`, dataTicket.authorId);
+    // eliminar canal
+    const channel = interaction.channel;
+    await interaction.deferUpdate();
+    await channel.delete('Ticket cerrado');
+    return;
+}
+
+
 
 
 
@@ -273,13 +391,17 @@ async function getReferenceTicket(redis, channelId) {
     return authorId;
     
 }
-async function logicCheckInTicketApplication(interaction, client, redis, configApply) {
+async function logicCheckInTicketApplication(interaction, client, redis, configApply, ignoreRoles=false) {
+    console.log(`[ticketHandler] logicCheckInTicketApplication invoked by user ${interaction.user.id} in channel ${interaction.channel.id}`);
+    if (!ignoreRoles){
         const hasAnyRole = configApply.staffAurthorityRoles
-    .some(roleId => interaction.member.roles.cache.has(roleId));
-    if (!hasAnyRole && !interaction.member?.permissions.has(PermissionsBitField.Flags.Administrator)) {
-        await interaction.reply({ content: `Solo los miembros del staff pueden interactuar con este ticket.`, ephemeral: true });
-        return;
+        .some(roleId => interaction.member.roles.cache.has(roleId));
+        if (!hasAnyRole && !interaction.member?.permissions.has(PermissionsBitField.Flags.Administrator)) {
+            await interaction.reply({ content: `Solo los miembros del staff pueden interactuar con este ticket.`, ephemeral: true });
+            return;
+        }
     }
+
     const dataTicket = await getDataTicket(redis, interaction.channel, configApply.nombreclave);
     if (!dataTicket) {
         await interaction.reply({ content: `ERROR: No se encontró información del ticket.`, ephemeral: true });
@@ -290,10 +412,4 @@ async function logicCheckInTicketApplication(interaction, client, redis, configA
         return;
     }
     return dataTicket;
-}
-async function rejectTicketApplication(interaction, client, redis, configApply) {
-    const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);
-
-    
-
 }
