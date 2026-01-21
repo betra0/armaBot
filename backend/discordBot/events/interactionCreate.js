@@ -46,6 +46,15 @@ module.exports = {
 
         // boton de verificación
         if (interaction.customId === "verifyUserBtn") {
+            const data = await getSimpleRedisJson({
+                redis: redis,
+                type: 'checkUser:config',
+                UID: `${interaction.guild.id}`
+            });
+            if (!data || !data.roleToAssign) {
+                console.log(prefixLog + 'Configuración de verificación no encontrada para el servidor:', interaction.guild.id);
+                return;
+            }
             console.log(prefixLog + '**Botón de verificación presionado por:', interaction.user.tag);
             const raw = await redis.get(`verifyAttempts:${interaction.user.id}`);
             let intento = raw === null ? -1 : Number(raw);
@@ -64,11 +73,6 @@ module.exports = {
                 await interaction.showModal(modal);
                 return;
             }
-            const data = await getSimpleRedisJson({
-                redis: redis,
-                type: 'checkUser:config',
-                UID: `${interaction.guild.id}`
-            });
             
             const minHoursArray = [7, 24*8*7]; // opciones de horas mínimas, de 7 horas a 7 semanas
             const timeCreatedMs = interaction.user.createdTimestamp;
@@ -128,6 +132,15 @@ module.exports = {
                 console.log(prefixLog + 'Interacción no es un envío de modal:', interaction.user.tag);
                 return;
             }
+            const data = await getSimpleRedisJson({
+                redis: redis,
+                type: 'checkUser:config',
+                UID: `${interaction.guild.id}`
+            });
+            if (!data || !data.roleToAssign) {
+                console.log(prefixLog + 'Configuración de verificación no encontrada para el servidor:', interaction.guild.id);
+                return;
+            }
             const userId = interaction.user.id;
             const userTag = interaction.user.tag;
             console.log(prefixLog + '*****Procesando modal de verificación adicional para:', userTag);
@@ -160,12 +173,17 @@ module.exports = {
 
         // botones de administración del servidor crafty
         if (["startServerCraftyBtn", "stopServerCraftyBtn", "rebootServerCraftyBtn", "backupServerCraftyBtn"].includes(interaction.customId)) {
-            console.log(prefixLog + '**Botón de administración presionado por:', interaction.user.tag);
             const data = await getSimpleRedisJson({
                 redis: redis,
                 type: 'adminCraftyServer:config',
                 UID: `${interaction.guild.id}`
             });
+            if (!data || !data.serverEndpoint || !data.craftyToken) {
+                console.log(prefixLog + 'Configuración de administración de Crafty no encontrada para el servidor:', interaction.guild.id);
+                return;
+            }
+            console.log(prefixLog + '**Botón de administración presionado por:', interaction.user.tag);
+
             if (interaction.customId === "startServerCraftyBtn") {
                 try {
                     await sendCraftyAction(data.serverEndpoint, data.craftyToken, 'start_server');
