@@ -3,6 +3,7 @@ const { getSimpleRedisJson } = require('../services/getFromRedis');
 const { saveSimpleRedisJson } = require('../services/insertInRedis');
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { TextInputBuilder, TextInputStyle } = require('discord.js');
+const { findAndEditMessageText } = require('../services/findAndEditMessageText');
 
 
 
@@ -102,62 +103,34 @@ async function createTicketApplication(interaction, client, redis, configApply) 
         permissionOverwrites: permisos,
     });
     const rolApplyName = configApply.roleToAssign ? `<@&${configApply.roleToAssign}>` : 'Ninguno';
-    const reclamado= 'No';
-    const formText = configApply.formInTicketStr || null;
-
-    const userId = interaction.user.id;
-
-    const embeds = [];
-    const embed = new EmbedBuilder()
-    .setColor('#0099ff')
-    .setTitle(`Ticket de Postulación de ${interaction.user.username}`)
-    .setDescription(`Sistema de tickets de postulación.`)
-    .addFields(
-        { name: 'Rol a postular:', value: `${rolApplyName}`, inline: true },
-        { name: 'Reclamado:', value: `${reclamado}`, inline : true },
-        { name: 'Creador del ticket:', value: `<@${interaction.user.id}>`, inline: true },
-        { name: 'Fecha de creación:', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true },
-    )
-    .setThumbnail(interaction.guild.iconURL({ dynamic: true, size: 512 }))
-    .setAuthor({ name: `Staff Tickets`, iconURL: interaction.guild.iconURL({ dynamic: true }) })
-    .setTimestamp();
-    embeds.push(embed);
-    const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId(`ticket:apply:close:${configApply.nombreclave}`)
-            .setLabel('Cerrar Ticket')
-            .setStyle(ButtonStyle.Danger),
-        new ButtonBuilder()
-            .setCustomId(`ticket:apply:claim:${configApply.nombreclave}`)
-            .setLabel('Reclamar Ticket')
-            .setStyle(ButtonStyle.Primary),
-        new ButtonBuilder()
-            .setCustomId(`ticket:apply:approve:${configApply.nombreclave}`)
-            .setLabel('Aprobar Rol')
-            .setStyle(ButtonStyle.Success),
-        new ButtonBuilder()
-            .setCustomId(`ticket:apply:reject:${configApply.nombreclave}`)
-            .setLabel('Rechazar Rol')
-            .setStyle(ButtonStyle.Danger),
-
-    );
-    
-    const mainMessage = await newTicketChannel.send({
-        content: `${metionsStr}`,
-        embeds: embeds,
-        components: [row]
-    });
-
     const ticketData = {
         authorId: interaction.user.id,
+        authorTag: interaction.user.tag,
         channelId: newTicketChannel.id,
-        mainMessageId: mainMessage.id,
+        mainMessageId: null,
         status: 'open',
         claimedBy: null,
         createdAt: new Date().toISOString(),
         configId: configApply.nombreclave,
 
-    }       
+    } 
+    const formText = configApply.formInTicketStr || null;
+
+    const userId = interaction.user.id;
+
+    const embed = await generateAdminEmbedTicket(interaction, interaction.user, ticketData, configApply);
+
+    const row = await generateRowTicketButtons( configApply, ticketData);
+    
+    const mainMessage = await newTicketChannel.send({
+        content: `${metionsStr}`,
+        embeds: [embed],
+        components: [row]
+    });
+
+    ticketData.mainMessageId = mainMessage.id;
+
+   
     await saveSimpleRedisJson({ redis, type: `ticket:apply:${interaction.guildId}:${configApply.nombreclave}`, UID: interaction.user.id, json: ticketData });
     await setReferenceTicket(redis, newTicketChannel.id, interaction.user.id);
     await interaction.reply({ content: `Tu ticket de aplicación ha sido creado: <#${newTicketChannel.id}>`, ephemeral: true });
@@ -229,7 +202,16 @@ async function claimTicketApplication(interaction, client, redis, configApply) {
         return;
     }
     dataTicket.claimedBy = interaction.user.id;
-
+    const member = dataTicket.authorId ? await interaction.guild.members.fetch(dataTicket.authorId) : null;
+    const embed = await generateAdminEmbedTicket(interaction, member.user, dataTicket, configApply);
+    const row = await generateRowTicketButtons( configApply, dataTicket);
+    const channel = interaction.channel;
+    const idMainMessage = dataTicket.mainMessageId;
+    if (!idMainMessage){
+        await interaction.reply({ content: `ERROR: No se encontró el mensaje principal del ticket.`, ephemeral: true });
+        return;
+    }
+    await findAndEditMessageText(interaction.client, channel.id, idMainMessage, { embeds: [embed], components: [row] })
     await saveSimpleRedisJson({ redis, type: `ticket:apply:${interaction.guildId}:${configApply.nombreclave}`, UID: dataTicket.authorId, json: dataTicket });
     await interaction.reply({ content: `El ticket ha sido reclamado por <@${interaction.user.id}>.` });
     return;
@@ -281,6 +263,18 @@ async function approveTicketApplication(interaction, client, redis, configApply)
     
     await member.roles.add(configApply.roleToAssign, 'Rol aprobado en postulación');
     dataTicket.status = 'approved';
+
+    const userTicket = member.user;
+    const embedMain = await generateAdminEmbedTicket(interaction, userTicket, dataTicket, configApply);
+    const rowMain = await generateRowTicketButtons( configApply, dataTicket);
+    const channel = interaction.channel;
+    const idMainMessage = dataTicket.mainMessageId;
+    if (!idMainMessage){
+        await interaction.reply({ content: `ERROR: No se encontró el mensaje principal del ticket.`, ephemeral: true });
+        return;
+    }
+    await findAndEditMessageText(interaction.client, channel.id, idMainMessage, { embeds: [embedMain], components: [rowMain] })
+
     await saveSimpleRedisJson({ redis, type: `ticket:apply:${interaction.guildId}:${configApply.nombreclave}`, UID: dataTicket.authorId, json: dataTicket });
     await interaction.reply({ content: `<@${dataTicket.authorId}>`, embeds: [...embeds, embed3], components: [row] });
     return;
@@ -412,4 +406,66 @@ async function logicCheckInTicketApplication(interaction, client, redis, configA
         return;
     }
     return dataTicket;
+}
+async function generateAdminEmbedTicket(interaction, userTicket, dataTicket, configApply) {
+    const rolApplyName= configApply.roleToAssign ? `<@&${configApply.roleToAssign}>` : 'Ninguno';
+    const reclamado= dataTicket.claimedBy ? `<@${dataTicket.claimedBy}>` : 'No';
+    const embed = new EmbedBuilder()
+    .setColor('#0099ff')
+    .setTitle(`Ticket de Postulación de ${userTicket.username}`)
+    .setDescription(`Sistema de tickets de postulación.`)
+    .addFields(
+        { name: 'Rol a postular:', value: `${rolApplyName}`, inline: true },
+        { name: 'Reclamado:', value: `${reclamado}`, inline : true },
+        { name: 'Creador del ticket:', value: `<@${userTicket.id}>`, inline: true },
+        { name: 'Estado del ticket:', value: `${dataTicket.status}`, inline: true },
+        { name: 'Fecha de creación:', value: `<t:${dataTicket.createdAt}:F>`, inline: true },
+    )
+    .setThumbnail(interaction.guild.iconURL({ dynamic: true, size: 512 }))
+    .setAuthor({ name: `Staff Tickets`, iconURL: interaction.guild.iconURL({ dynamic: true }) })
+    .setTimestamp();
+    
+    return embed;
+}
+
+async function generateRowTicketButtons(configApply, dataTicket) {
+    const components = [];
+    if (!dataTicket.claimedBy) {
+        // ticket reclamado
+        components.push(
+            new ButtonBuilder()
+                .setCustomId(`ticket:apply:claim:${configApply.nombreclave}`)
+                .setLabel('Reclamar Ticket')
+                .setStyle(ButtonStyle.Primary),
+        );
+    }
+    else if(dataTicket.status !== 'approved') {
+        components.push(
+            new ButtonBuilder()
+                .setCustomId(`ticket:apply:approve:${configApply.nombreclave}`)
+                .setLabel('Aprobar Rol')
+                .setStyle(ButtonStyle.Success)
+        );
+    }
+    if (dataTicket.status !=='approved'){
+        components.push(
+            new ButtonBuilder()
+                .setCustomId(`ticket:apply:reject:${configApply.nombreclave}`)
+                .setLabel('Rechazar Rol')
+                .setStyle(ButtonStyle.Danger),
+        );
+    }
+
+
+
+    const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`ticket:apply:close:${configApply.nombreclave}`)
+            .setLabel('Cerrar Ticket')
+            .setStyle(ButtonStyle.Danger),
+
+        ...components
+    );
+    
+    return row;
 }
