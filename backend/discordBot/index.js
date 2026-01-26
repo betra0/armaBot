@@ -10,6 +10,7 @@ const { reloadStatusCraftyTask } = require('./task/reloadStatusCrafty');
 const { initRedisSubscriber } = require('./redis/subscriber');
 const { changeAmountMembers } = require('./handlers/changeAmountMembers.handler');
 
+const { a2sFetcherMain, callAllEventsA2s } = require('./task/a2sFetcher');
 
 
 
@@ -39,6 +40,9 @@ client.on('ready', async () => {
     // task
     startReloadLoop();
     startA2sFetcherLoop();
+    await sleep(6*1000);
+    await callAllEventsA2s(redis) // llamar a todos los eventos una vez al iniciar el bot
+
 });
 
 
@@ -86,7 +90,6 @@ async function startReloadLoop() {
 }
  
 async function startA2sFetcherLoop(){
-    const { a2sFetcherMain } = require('./task/a2sFetcher');
         while(true) {
         try {
             await a2sFetcherMain(redis);

@@ -217,6 +217,14 @@ async function savejoinLeftRegistrer({redis, address, joinedPlayers, leftPlayers
 	
 
 }
+async function callAllEventsA2s(redis) {
+    const adreesToFetch = await redis.smembers('ipsTofech');
+    for (const adress of adreesToFetch) {
+        callRedisChangeInfo(redis, adress);
+        callRedisChangeamountPlayers(redis, adress);
+    }
+
+}
 async function a2sFetcherMain(redis) {
     adreesToFetch = await redis.smembers('ipsTofech');
 	console.log(prefixLog, "Fetching info for addresses: ", adreesToFetch);
@@ -230,5 +238,6 @@ async function a2sFetcherMain(redis) {
 }
 
 module.exports = {
-	a2sFetcherMain
+	a2sFetcherMain,
+  callAllEventsA2s
 }
