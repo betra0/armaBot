@@ -62,6 +62,14 @@ async function logicAdressInfo(ip, port, redis){
 			await saveInfoAdressinRedis({ adress: key, infoAdress: serverData, redis });
 			callRedisChangeInfo(redis, key);
 			callRedisChangeamountPlayers(redis, key);
+      // mandar un registro de server off 
+      const registro = [{
+      playerName: '__SERVER__'
+        , action: 'offline_or_unreachable'
+        , timestamp: new Date().toISOString()
+      }];
+      await saveRegistros({redis, address: key, newRegistros: registro});
+
 
 		}
 		return;
@@ -178,16 +186,9 @@ function trackPlayerLeftJoin(newPlayers, oldPlayers){
 
 
 async function savejoinLeftRegistrer({redis, address, joinedPlayers, leftPlayers, key="a2sServer:playerJoinLeftRegister"}){
-	
-	// guardar en redis o base de datos
-	let register = await getSimpleRedisJson({
-        redis,
-        type: key,
-        UID: address,
-    });
-	if (!register || !Array.isArray(register)) {
-        register = [];
-    }
+  joinedPlayers = Array.isArray(joinedPlayers) ? joinedPlayers : [];
+  leftPlayers = Array.isArray(leftPlayers) ? leftPlayers : [];
+  let register = [];
 	for (const playerName of joinedPlayers) {
 		register.push({
 			playerName,
@@ -202,7 +203,22 @@ async function savejoinLeftRegistrer({redis, address, joinedPlayers, leftPlayers
 			timestamp: new Date().toISOString(),
 		});
 	}
-	const maxRegisterLength = 12;
+  await saveRegistros({redis, address, newRegistros: register, key});
+	
+
+}
+async function saveRegistros({redis, address, newRegistros, key="a2sServer:playerJoinLeftRegister"}){
+	let register = await getSimpleRedisJson({
+        redis,
+        type: key,
+        UID: address,
+    });
+	if (!register || !Array.isArray(register)) {
+        register = [];
+    }
+
+  register = register.concat(newRegistros);
+	const maxRegisterLength = 14;
 	if (register.length > maxRegisterLength) {
 		register = register.slice(register.length - maxRegisterLength);
 	}
@@ -213,10 +229,9 @@ async function savejoinLeftRegistrer({redis, address, joinedPlayers, leftPlayers
         UID: address,
         json: register,
 
-     });
-	
-
+  });
 }
+
 async function callAllEventsA2s(redis) {
     const adreesToFetch = await redis.smembers('ipsTofech');
     for (const adress of adreesToFetch) {
