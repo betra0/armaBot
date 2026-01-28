@@ -110,7 +110,7 @@ async function startA2sFetcherLoop(){
 
 async function ejecutar() {
     console.log('Esperando unos segundos para iniciar el bot...');
-    await sleep( 4 * 1000); 
+    await sleep(1000); 
     console.log('Iniciando el bot...');
     redis = new Redis({
         host:process.env.REDISHOST,
