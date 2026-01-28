@@ -305,7 +305,7 @@ module.exports = {
             const row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                     .setCustomId(btnId)
-                    .setLabel('Abrir Ticket de Postulacion')
+                    .setLabel('Abrir Ticket')
                     .setEmoji('✅') 
                     .setStyle(ButtonStyle.Primary)
             );
