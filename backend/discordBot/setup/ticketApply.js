@@ -33,6 +33,7 @@ module.exports = {
             channelId: null,
             messageId: null,
             categoryId: null,
+            channelForLogsId: null,
         };
         const respuestasArray = [
             {
@@ -300,6 +301,13 @@ module.exports = {
                 
             }); 
             console.log('canal creado')
+            const channelForLogs = await guild.channels.create({
+                name: `logs-ticket-${config.nombreclave}`,
+                type: ChannelType.GuildText,
+                parent: category.id,
+            });
+            console.log('canal de logs creado')
+
             
 
             const row = new ActionRowBuilder().addComponents(
@@ -321,6 +329,7 @@ module.exports = {
             config.channelId = channel.id;
             config.messageId = message.id;
             config.categoryId = category.id;
+            config.channelForLogsId = channelForLogs.id;
             return config;
             
         

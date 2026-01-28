@@ -308,6 +308,7 @@ async function rejectTicketApplication(interaction, client, redis, configApply) 
         await interaction.reply({ content: `ERROR: No se pudo encontrar al miembro para enviar el rechazo.`, ephemeral: true });
         return;
     }
+    const channelLogs = configApply.channelLogsId ? await interaction.guild.channels.fetch( configApply.channelLogsId) : null;
     const channel = interaction.channel;
     const embed = new EmbedBuilder()
     .setColor('#FF0000')
@@ -319,6 +320,13 @@ async function rejectTicketApplication(interaction, client, redis, configApply) 
     });
     dataTicket.status = 'rejected';
     await saveSimpleRedisJson({ redis, type: `ticket:apply:${interaction.guildId}:${configApply.nombreclave}`, UID: dataTicket.authorId, json: dataTicket });
+    if (channelLogs && channelLogs.isTextBased()){
+        const embedLog = generateEmbedLog({ action: 'reject', dataTicket, reason: rejectReason, userStaffID: interaction.user.id });
+        await channelLogs.send({ embeds: [embedLog] });
+    }
+
+        
+
     await interaction.deferUpdate();
     await channel.delete('Ticket cerrado por rechazo de postulación');
     redis.del(`ticket:${interaction.channel.id}:author`);
@@ -468,4 +476,33 @@ async function generateRowTicketButtons(configApply, dataTicket) {
     );
     
     return row;
+}
+
+const generateEmbedLog = ({ action='reject', dataTicket, reason, userStaffID
+
+}) => {
+    reason = reason || 'No especificado';
+    reclamado = dataTicket.claimedBy ? dataTicket.claimedBy : false;
+    
+    const dialog ={
+        reject : ['rechazado', 'rechazada', '#FF0000'],
+        approve: ['aprobado', 'aprobada', '#00FF00'],
+        close: ['cerrado', 'cerrada', '#FFA500'],
+    }
+
+
+    const embedLog = new EmbedBuilder()
+        .setColor('#FF0000')
+        .setTitle(`Ticket ${dialog[action][1]}`)
+        .setDescription(`La postulación de <@${dataTicket.authorId}> ha sido ${dialog[action][0]} por <@${userStaffID}>.\n\nMotivo: ${reason}`)
+        .addFields(
+            { name: 'ID del Ticket:', value: `${channel.id}`, inline: true },
+            { name: 'Postulante:', value: `<@${dataTicket.authorId}>`, inline: true },
+            { name : 'ejecutado por:', value: `<@${userStaffID}>`, inline: true },
+            { name: 'Motivo:', value: `${reason}`, inline: true },
+            { name: `Ticket reclamado${reclamado ? ' por' : ''}:`, value: reclamado ? `<@${reclamado}>` : 'No', inline: true },
+        )
+        .setTimestamp();
+
+    return embedLog;
 }
