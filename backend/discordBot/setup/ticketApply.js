@@ -356,8 +356,8 @@ module.exports = {
         }
         async function saveContext(paso){
             // por ahora vacio
-            await redis.set(`stepTicketApply:${message.channel.id}`, paso.toString(), 'EX', 400); // expira 
-            await redis.set(`response:${message.channel.id}`, 'ticketApply', 'EX', 400); // expira en 6.6 minutos
+            await redis.set(`stepTicketApply:${message.channel.id}`, paso.toString(), 'EX', 60*8); // expira 
+            await redis.set(`response:${message.channel.id}`, 'ticketApply', 'EX', 60*8); // expira en 8 minutos
 
         }
         async function delContext(){
@@ -365,7 +365,7 @@ module.exports = {
             await redis.del(`response:${message.channel.id}`);
         }   
         function saveMomentActualConfig(guildId, config){
-            saveRedisJsonTTL({ redis, key: `configTicketApply:${guildId}`, json: config, TTL: 60 * 4 }) // 4 minutos  
+            saveRedisJsonTTL({ redis, key: `configTicketApply:${guildId}`, json: config, TTL: 60*8 }) // 8 minutos  
         }
         function savConfigFinal(guildId, config){
                 // cuando el setup se completa guardar sin TTL
