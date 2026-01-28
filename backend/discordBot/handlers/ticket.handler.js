@@ -231,6 +231,7 @@ async function approveTicketApplication(interaction, client, redis, configApply)
         return;
     }
     const strMesageOnApprove = configApply.MessagePostApproveStr || ''
+    const channelLogs = configApply.channelForLogsId ? await interaction.guild.channels.fetch( configApply.channelForLogsId) : null;
     const embeds = [];
     const embed1 = new EmbedBuilder()
     .setColor('#00FF00')
@@ -274,6 +275,10 @@ async function approveTicketApplication(interaction, client, redis, configApply)
         return;
     }
     await findAndEditMessageText(interaction.client, channel.id, idMainMessage, { embeds: [embedMain], components: [rowMain] })
+    if (channelLogs){
+        const embedLog = generateEmbedLog({ action: 'approve', dataTicket, userStaffID: interaction.user.id });
+        await channelLogs.send({ embeds: [embedLog] });
+    }
 
     await saveSimpleRedisJson({ redis, type: `ticket:apply:${interaction.guildId}:${configApply.nombreclave}`, UID: dataTicket.authorId, json: dataTicket });
     await interaction.reply({ content: `<@${dataTicket.authorId}>`, embeds: [...embeds, embed3], components: [row] });
@@ -308,7 +313,7 @@ async function rejectTicketApplication(interaction, client, redis, configApply) 
         await interaction.reply({ content: `ERROR: No se pudo encontrar al miembro para enviar el rechazo.`, ephemeral: true });
         return;
     }
-    const channelLogs = configApply.channelLogsId ? await interaction.guild.channels.fetch( configApply.channelLogsId) : null;
+    const channelLogs = configApply.channelForLogsId ? await interaction.guild.channels.fetch( configApply.channelForLogsId) : null;
     const channel = interaction.channel;
     const embed = new EmbedBuilder()
     .setColor('#FF0000')
@@ -320,19 +325,17 @@ async function rejectTicketApplication(interaction, client, redis, configApply) 
     });
     dataTicket.status = 'rejected';
     await saveSimpleRedisJson({ redis, type: `ticket:apply:${interaction.guildId}:${configApply.nombreclave}`, UID: dataTicket.authorId, json: dataTicket });
-    if (channelLogs && channelLogs.isTextBased()){
+    // mandar log al canal de logs
+    if (channelLogs){
         const embedLog = generateEmbedLog({ action: 'reject', dataTicket, reason: rejectReason, userStaffID: interaction.user.id });
         await channelLogs.send({ embeds: [embedLog] });
     }
-
-        
-
     await interaction.deferUpdate();
+    redis.del(`ticket:${channel.id}:author`); // eliminar referencia al canal pero no el dataTicket
     await channel.delete('Ticket cerrado por rechazo de postulación');
-    redis.del(`ticket:${interaction.channel.id}:author`);
     return;
-
 }
+
 async function closeConfirmTicketApplication(interaction, client, redis, configApply) {
     console.log('Cerrando ticket por confirmación directa');
     const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply, ignoreRoles=true);
@@ -345,6 +348,8 @@ async function closeConfirmTicketApplication(interaction, client, redis, configA
 async function closeModalTicketApplication(interaction, client, redis, configApply) {
     const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);    
     const closeReason = interaction.fields.getTextInputValue('close_reason');
+    const channelLogs = configApply.channelForLogsId ? await interaction.guild.channels.fetch( configApply.channelForLogsId) : null;
+
     if (closeReason && closeReason.trim() !==''){
         const user = await interaction.guild.members.fetch(dataTicket.authorId);
         if (user){
@@ -364,6 +369,11 @@ async function closeModalTicketApplication(interaction, client, redis, configApp
     await redis.hdel(`databot:ticket:apply:${interaction.guildId}:${configApply.nombreclave}`, dataTicket.authorId);
     // eliminar canal
     const channel = interaction.channel;
+    // mandar log al canal de logs
+    if (channelLogs && dataTicket.status !== 'approved'){
+        const embedLog = generateEmbedLog({ action: 'close', dataTicket, reason: closeReason, userStaffID: interaction.user.id });
+        await channelLogs.send({ embeds: [embedLog] });
+    }
     await interaction.deferUpdate();
     await channel.delete('Ticket cerrado');
     return;
@@ -492,13 +502,13 @@ const generateEmbedLog = ({ action='reject', dataTicket, reason, userStaffID
 
 
     const embedLog = new EmbedBuilder()
-        .setColor('#FF0000')
-        .setTitle(`Ticket ${dialog[action][1]}`)
-        .setDescription(`La postulación de <@${dataTicket.authorId}> ha sido ${dialog[action][0]} por <@${userStaffID}>.\n\nMotivo: ${reason}`)
+        .setColor(dialog[action][2])
+        .setTitle(`Ticket ${dialog[action][0]}`)
+        .setDescription(`La postulación de <@${dataTicket.authorId}> ha sido ${dialog[action][1]} por <@${userStaffID}>.`)
         .addFields(
-            { name: 'ID del Ticket:', value: `${channel.id}`, inline: true },
+            { name: 'ID del Ticket:', value: `${dataTicket.channelId}`, inline: true },
+            {name: 'ID del Postulante:', value: `${dataTicket.authorId}`, inline: true },
             { name: 'Postulante:', value: `<@${dataTicket.authorId}>`, inline: true },
-            { name : 'ejecutado por:', value: `<@${userStaffID}>`, inline: true },
             { name: 'Motivo:', value: `${reason}`, inline: true },
             { name: `Ticket reclamado${reclamado ? ' por' : ''}:`, value: reclamado ? `<@${reclamado}>` : 'No', inline: true },
         )
