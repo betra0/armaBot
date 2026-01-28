@@ -51,7 +51,6 @@ async function getOldDataAdress(redis, key){
 async function logicAdressInfo(ip, port, redis){
 	key = `${ip}:${port}`;
     const serverData = await getInfoAdressFromA2s(ip, port);
-	console.log(prefixLog, `data : `, serverData);
     const olddata = await getOldDataAdress(redis, key); 
 
 
