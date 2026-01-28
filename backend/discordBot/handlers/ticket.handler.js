@@ -149,6 +149,9 @@ async function createTicketApplication(interaction, client, redis, configApply) 
 async function closeTicketApplication(interaction, client, redis, configApply) {
 
     const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply, ignoreRoles=true);
+    if (!dataTicket) {
+        return;
+    }
     console.log(`[ticketHandler] closeTicketApplication invoked by user ${interaction.user.id} in channel ${interaction.channel.id}`);
     if (dataTicket.authorId === interaction.user.id) {
         if (dataTicket.status !=='approved'){
@@ -197,6 +200,9 @@ async function closeTicketApplication(interaction, client, redis, configApply) {
 async function claimTicketApplication(interaction, client, redis, configApply) {
     const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);
     // lógica de reclamar ticket
+    if (!dataTicket) {
+        return;
+    }
     if (dataTicket.claimedBy) {
         await interaction.reply({ content: `Este ticket ya ha sido reclamado por <@${dataTicket.claimedBy}>.`, ephemeral: true });
         return;
@@ -221,6 +227,9 @@ async function claimTicketApplication(interaction, client, redis, configApply) {
 async function approveTicketApplication(interaction, client, redis, configApply) {
     // lógica de aprobar rol en ticket
     const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);
+    if (!dataTicket) {
+        return;
+    }
     if (!configApply.roleToAssign) {
         await interaction.reply({ content: `ERROR: No hay un rol configurado para asignar en esta postulación.`, ephemeral: true });
         return;
@@ -288,6 +297,9 @@ async function approveTicketApplication(interaction, client, redis, configApply)
 
 async function rejectTicketApplication(interaction, client, redis, configApply) {
     const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);    
+    if (!dataTicket) {
+        return;
+    }
     const modal = new ModalBuilder()
     .setCustomId(`ticket:apply:reject_modal:${configApply.nombreclave}`)
     .setTitle('Rechazo de postulación');
