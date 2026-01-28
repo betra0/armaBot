@@ -451,7 +451,7 @@ async function generateRowTicketButtons(configApply, dataTicket) {
         components.push(
             new ButtonBuilder()
                 .setCustomId(`ticket:apply:approve:${configApply.nombreclave}`)
-                .setLabel('Aprobar Rol')
+                .setLabel('Aprobar')
                 .setStyle(ButtonStyle.Success)
         );
     }
@@ -459,7 +459,7 @@ async function generateRowTicketButtons(configApply, dataTicket) {
         components.push(
             new ButtonBuilder()
                 .setCustomId(`ticket:apply:reject:${configApply.nombreclave}`)
-                .setLabel('Rechazar Rol')
+                .setLabel('Rechazar')
                 .setStyle(ButtonStyle.Danger),
         );
     }
