@@ -337,7 +337,11 @@ async function approveTicketApplication(interaction, client, redis, configApply)
 
     await saveSimpleRedisJson({ redis, type: `ticket:apply:${interaction.guildId}:${configApply.nombreclave}`, UID: dataTicket.authorId, json: dataTicket });
     await interaction.followUp({ content: `<@${dataTicket.authorId}>`, embeds: [...embeds, embed3], components: [row] });
-    return;
+    await channel.edit({
+        name: `ticket-approved-${member.user.username}`,
+        reason: 'Ticket aprobado y rol asignado'
+    });
+
 }
 
 
