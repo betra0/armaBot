@@ -42,6 +42,8 @@ async function ticketHandler(interaction, client, redis) {
             await rejectTicketApplication(interaction, client, redis, configApply);
         }
         else if (action === 'close_confirm') {
+            interaction.reply({ content:'No habilitado temporalmente', ephemeral: true });
+            return 
             await closeConfirmTicketApplication(interaction, client, redis, configApply);
         }
         else if (action === 'close_modal') {
