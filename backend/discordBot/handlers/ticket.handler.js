@@ -135,7 +135,13 @@ async function createTicketApplication(interaction, client, redis, configApply) 
    
     await saveSimpleRedisJson({ redis, type: `ticket:apply:${interaction.guildId}:${configApply.nombreclave}`, UID: interaction.user.id, json: ticketData });
     await setReferenceTicket(redis, newTicketChannel.id, interaction.user.id);
-    await interaction.reply({ content: `Tu ticket de aplicación ha sido creado: <#${newTicketChannel.id}>`, ephemeral: true });
+    try {
+        await interaction.reply({ content: `Tu ticket de aplicación ha sido creado: <#${newTicketChannel.id}>`, ephemeral: true });
+
+    }
+    catch (error) {
+        console.error(`${prefixLog} Error al enviar mensaje de confirmación de ticket: ${error.message}`);
+    }
 
     if (formText){
         await newTicketChannel.send({ content: ` 👋 Hola <@${userId}>, responde las siguientes preguntas para poder continuar con el proceso.\n${formText}` });
