@@ -331,7 +331,8 @@ async function approveTicketApplication(interaction, client, redis, configApply)
     }
     await findAndEditMessageText(interaction.client, channel.id, idMainMessage, { embeds: [embedMain], components: [rowMain] })
     if (channelLogs){
-        const embedLog = generateEmbedLog({ action: 'approve', dataTicket, userStaffID: interaction.user.id });
+        const reason = 'Postulación aprobada';
+        const embedLog = generateEmbedLog({ action: 'approve', dataTicket, reason: reason, userStaffID: interaction.user.id });
         await channelLogs.send({ embeds: [embedLog] });
     }
 
@@ -490,8 +491,9 @@ async function closeModalTicketApplication(interaction, client, redis, configApp
     // eliminar canal
     const channel = interaction.channel;
     // mandar log al canal de logs
-    if (channelLogs && dataTicket.status !== 'approved'){
-        const embedLog = generateEmbedLog({ action: 'close', dataTicket, reason: closeReason, userStaffID: interaction.user.id });
+    if (channelLogs ){
+        const reason = dataTicket.status === 'approved' ? 'Postulación aprobada previamente' : closeReason;
+        const embedLog = generateEmbedLog({ action: 'close', dataTicket, reason: reason, userStaffID: interaction.user.id });
         await channelLogs.send({ embeds: [embedLog] });
     }
     await channel.delete('Ticket cerrado');
