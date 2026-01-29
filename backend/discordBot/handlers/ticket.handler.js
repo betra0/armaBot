@@ -156,7 +156,18 @@ async function createTicketApplication(interaction, client, redis, configApply) 
 }
 async function closeTicketApplication(interaction, client, redis, configApply) {
 
-    const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply, ignoreRoles=true);
+    let dataTicket = null;
+    try {
+        dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply, ignoreRoles=true);
+    }catch (error) {
+        if (error.isControlled) {
+            console.log(`[ticketHandler] closeTicketApplication controlled error: ${error.message}`);
+            await interaction.reply({ content: error.message, ephemeral: true });
+            return;
+        } else {
+            throw error;
+        }
+    }
     if (!dataTicket) {
         return;
     }
@@ -206,13 +217,27 @@ async function closeTicketApplication(interaction, client, redis, configApply) {
     
 }
 async function claimTicketApplication(interaction, client, redis, configApply) {
-    const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);
+    let dataTicket = null;
+    await interaction.deferUpdate();
+    try {
+        dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);
+        
+    }catch (error) {
+        if (error.isControlled) {
+            console.log(`[ticketHandler] claimTicketApplication controlled error: ${error.message}`);
+
+            await interaction.followUp({ content: error.message, ephemeral: true });
+            return;
+        } else {
+            throw error;
+        }
+    }
     // lógica de reclamar ticket
     if (!dataTicket) {
         return;
     }
     if (dataTicket.claimedBy) {
-        await interaction.reply({ content: `Este ticket ya ha sido reclamado por <@${dataTicket.claimedBy}>.`, ephemeral: true });
+        await interaction.followUp({ content: `Este ticket ya ha sido reclamado por <@${dataTicket.claimedBy}>.`, ephemeral: true });
         return;
     }
     dataTicket.claimedBy = interaction.user.id;
@@ -222,29 +247,42 @@ async function claimTicketApplication(interaction, client, redis, configApply) {
     const channel = interaction.channel;
     const idMainMessage = dataTicket.mainMessageId;
     if (!idMainMessage){
-        await interaction.reply({ content: `ERROR: No se encontró el mensaje principal del ticket.`, ephemeral: true });
+        await interaction.followUp({ content: `ERROR: No se encontró el mensaje principal del ticket.`, ephemeral: true });
         return;
     }
     await findAndEditMessageText(interaction.client, channel.id, idMainMessage, { embeds: [embed], components: [row] })
     await saveSimpleRedisJson({ redis, type: `ticket:apply:${interaction.guildId}:${configApply.nombreclave}`, UID: dataTicket.authorId, json: dataTicket });
-    await interaction.reply({ content: `El ticket ha sido reclamado por <@${interaction.user.id}>.` });
+    await interaction.followUp({ content: `El ticket ha sido reclamado por <@${interaction.user.id}>.` });
     return;
 
 }
 
 async function approveTicketApplication(interaction, client, redis, configApply) {
     // lógica de aprobar rol en ticket
-    const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);
+    let dataTicket = null;
+    await interaction.deferUpdate();
+    try {
+        dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);
+        
+    }catch (error) {
+        if (error.isControlled) {
+            console.log(`[ticketHandler] approveTicketApplication controlled error: ${error.message}`);
+            await interaction.followUp({ content: error.message, ephemeral: true });
+            return;
+        } else {
+            throw error;
+        }
+    }
     if (!dataTicket) {
         return;
     }
     if (!configApply.roleToAssign) {
-        await interaction.reply({ content: `ERROR: No hay un rol configurado para asignar en esta postulación.`, ephemeral: true });
+        await interaction.followUp({ content: `ERROR: No hay un rol configurado para asignar en esta postulación.`, ephemeral: true });
         return;
     }
     const member = await interaction.guild.members.fetch(dataTicket.authorId);
     if (!member) {
-        await interaction.reply({ content: `ERROR: No se pudo encontrar al miembro para asignar el rol.`, ephemeral: true });
+        await interaction.followUp({ content: `ERROR: No se pudo encontrar al miembro para asignar el rol.`, ephemeral: true });
         return;
     }
     const strMesageOnApprove = configApply.MessagePostApproveStr || ''
@@ -288,7 +326,7 @@ async function approveTicketApplication(interaction, client, redis, configApply)
     const channel = interaction.channel;
     const idMainMessage = dataTicket.mainMessageId;
     if (!idMainMessage){
-        await interaction.reply({ content: `ERROR: No se encontró el mensaje principal del ticket.`, ephemeral: true });
+        await interaction.followUp({ content: `ERROR: No se encontró el mensaje principal del ticket.`, ephemeral: true });
         return;
     }
     await findAndEditMessageText(interaction.client, channel.id, idMainMessage, { embeds: [embedMain], components: [rowMain] })
@@ -298,13 +336,27 @@ async function approveTicketApplication(interaction, client, redis, configApply)
     }
 
     await saveSimpleRedisJson({ redis, type: `ticket:apply:${interaction.guildId}:${configApply.nombreclave}`, UID: dataTicket.authorId, json: dataTicket });
-    await interaction.reply({ content: `<@${dataTicket.authorId}>`, embeds: [...embeds, embed3], components: [row] });
+    await interaction.followUp({ content: `<@${dataTicket.authorId}>`, embeds: [...embeds, embed3], components: [row] });
     return;
 }
 
 
 async function rejectTicketApplication(interaction, client, redis, configApply) {
-    const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);    
+    let dataTicket = null;
+    try 
+    {
+        dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);
+        
+    }
+    catch (error) {
+        if (error.isControlled) {
+            console.log(`[ticketHandler] rejectTicketApplication controlled error: ${error.message}`);
+            await interaction.reply({ content: error.message, ephemeral: true });
+            return;
+        } else {
+            throw error;
+        }
+    }
     if (!dataTicket) {
         return;
     }
@@ -326,11 +378,27 @@ async function rejectTicketApplication(interaction, client, redis, configApply) 
     return;
 }
  async function rejectModalTicketApplication(interaction, client, redis, configApply) {
-    const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);    
+    let dataTicket = null;
+    await interaction.deferUpdate();
+    try {
+        dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);
+
+    }catch (error) {
+        if (error.isControlled) {
+            console.log(`[ticketHandler] rejectModalTicketApplication controlled error: ${error.message}`);
+            await interaction.followUp({ content: error.message, ephemeral: true });
+            return;
+        } else {
+            throw error;
+        }
+    }
+    if (!dataTicket) {
+        return;
+    }   
     const rejectReason = interaction.fields.getTextInputValue('reject_reason');
     const user = await interaction.guild.members.fetch(dataTicket.authorId);
     if (!user){
-        await interaction.reply({ content: `ERROR: No se pudo encontrar al miembro para enviar el rechazo.`, ephemeral: true });
+        await interaction.followUp({ content: `ERROR: No se pudo encontrar al miembro para enviar el rechazo.`, ephemeral: true });
         return;
     }
     const channelLogs = configApply.channelForLogsId ? await interaction.guild.channels.fetch( configApply.channelForLogsId) : null;
@@ -350,7 +418,6 @@ async function rejectTicketApplication(interaction, client, redis, configApply) 
         const embedLog = generateEmbedLog({ action: 'reject', dataTicket, reason: rejectReason, userStaffID: interaction.user.id });
         await channelLogs.send({ embeds: [embedLog] });
     }
-    await interaction.deferUpdate();
     redis.del(`ticket:${channel.id}:author`); // eliminar referencia al canal pero no el dataTicket
     await channel.delete('Ticket cerrado por rechazo de postulación');
     return;
@@ -358,7 +425,20 @@ async function rejectTicketApplication(interaction, client, redis, configApply) 
 
 async function closeConfirmTicketApplication(interaction, client, redis, configApply) {
     console.log('Cerrando ticket por confirmación directa');
-    const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply, ignoreRoles=true);
+    let dataTicket = null;
+    try {
+        dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply, ignoreRoles=true);
+
+    }catch (error) {
+        if (error.isControlled) {
+            console.log(`[ticketHandler] closeConfirmTicketApplication controlled error: ${error.message}`);
+            await interaction.followUp({ content: error.message, ephemeral: true });
+            return;
+        } else {
+            throw error;
+        }
+    }
+
     await redis.del(`ticket:${interaction.channel.id}:author`);
     await redis.hdel(`databot:ticket:apply:${interaction.guildId}:${configApply.nombreclave}`, dataTicket.authorId);
     // eliminar canal
@@ -366,11 +446,23 @@ async function closeConfirmTicketApplication(interaction, client, redis, configA
     return;
 }
 async function closeModalTicketApplication(interaction, client, redis, configApply) {
-    const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);
+    await interaction.deferUpdate();
+    let dataTicket = null;
+    try {
+        dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);
+
+    }catch (error) {
+        if (error.isControlled) {
+            console.log(`[ticketHandler] closeModalTicketApplication controlled error: ${error.message}`);
+            await interaction.followUp({ content: error.message, ephemeral: true });
+            return;
+        } else {
+            throw error;
+        }
+    }
     if (!dataTicket) {
         return;
     }
-    await interaction.deferUpdate();
     const closeReason = interaction.fields.getTextInputValue('close_reason');
     const channelLogs = configApply.channelForLogsId ? await interaction.guild.channels.fetch( configApply.channelForLogsId) : null;
 
@@ -427,24 +519,30 @@ async function getReferenceTicket(redis, channelId) {
     
 }
 async function logicCheckInTicketApplication(interaction, client, redis, configApply, ignoreRoles=false) {
-    console.log(`[ticketHandler] logicCheckInTicketApplication invoked by user ${interaction.user.id} in channel ${interaction.channel.id}`);
     if (!ignoreRoles){
         const hasAnyRole = configApply.staffAurthorityRoles
         .some(roleId => interaction.member.roles.cache.has(roleId));
         if (!hasAnyRole && !interaction.member?.permissions.has(PermissionsBitField.Flags.Administrator)) {
-            await interaction.reply({ content: `Solo los miembros del staff pueden interactuar con este ticket.`, ephemeral: true });
-            return;
+            const err =new Error('No tienes permisos para gestionar este ticket.');
+            err.code = 'TICKET_ERROR';
+            err.isControlled = true;
+            throw err;
         }
     }
 
     const dataTicket = await getDataTicket(redis, interaction.channel, configApply.nombreclave);
     if (!dataTicket) {
-        await interaction.reply({ content: `ERROR: No se encontró información del ticket.`, ephemeral: true });
-        return;
+        const err = new Error('No se encontró el ticket asociado a este canal.');
+        err.code = 'TICKET_ERROR';
+        err.isControlled = true;
+        throw err;
     }
+
     if (dataTicket.status === 'closed') {
-        await interaction.reply({ content: `Este ticket ya está cerrado.`, ephemeral: true });
-        return;
+        const err = new Error('Este ticket ya está cerrado.');
+        err.code = 'TICKET_ERROR';
+        err.isControlled = true;
+        throw err;
     }
     return dataTicket;
 }
