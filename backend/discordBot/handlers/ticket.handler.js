@@ -366,7 +366,11 @@ async function closeConfirmTicketApplication(interaction, client, redis, configA
     return;
 }
 async function closeModalTicketApplication(interaction, client, redis, configApply) {
-    const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);    
+    const dataTicket = await logicCheckInTicketApplication(interaction, client, redis, configApply);
+    if (!dataTicket) {
+        return;
+    }
+    await interaction.deferUpdate();
     const closeReason = interaction.fields.getTextInputValue('close_reason');
     const channelLogs = configApply.channelForLogsId ? await interaction.guild.channels.fetch( configApply.channelForLogsId) : null;
 
@@ -394,7 +398,6 @@ async function closeModalTicketApplication(interaction, client, redis, configApp
         const embedLog = generateEmbedLog({ action: 'close', dataTicket, reason: closeReason, userStaffID: interaction.user.id });
         await channelLogs.send({ embeds: [embedLog] });
     }
-    await interaction.deferUpdate();
     await channel.delete('Ticket cerrado');
     return;
 }
