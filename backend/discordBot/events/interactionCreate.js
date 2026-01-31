@@ -74,7 +74,7 @@ module.exports = {
                 return;
             }
             
-            const minHoursArray = [7, 24*8*7]; // opciones de horas mínimas, de 7 horas a 7 semanas
+            const minHoursArray = [7, 24*7*4*7]; // opciones de horas mínimas, de 7 horas a 7 meses
             const timeCreatedMs = interaction.user.createdTimestamp;
             const minMsArray = minHoursArray.map(hours => hours * 60 * 60 * 1000);
             let [min, max] = minMsArray;
@@ -96,7 +96,7 @@ module.exports = {
                 return;
             }
             const joinedAt = interaction.member.joinedTimestamp;
-            const MinJoinTimeMsRango = [1000*7, 30*1000]; // 7 segundos a 30 segundos
+            const MinJoinTimeMsRango = [1000*7, 35*1000]; // 7 segundos a 35 segundos
             if (Date.now() - joinedAt < MinJoinTimeMsRango[1]) {
                 // o se manda a modal o se ignora, pero si o si es sopechoso
                     await initContadorSi(redis, interaction.user.id);
